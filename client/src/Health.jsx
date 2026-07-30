@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import axios from 'axios';
 import ai from "./assets/ai-assistant.avif";
+import vdo from "./assets/ai-assist-2.mp4";
 import { useNavigate } from 'react-router';
 
 const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -27,6 +28,21 @@ export default function AuraChat() {
   const isProcessingRef = useRef(false);
   const continuousModeRef = useRef(false); // Crucial: Dynamic global pointer loop control
   const chatBottomRef = useRef(null);
+
+  // Automatically plays video when sound/speaking is true, pauses when false
+const videoRef = useRef(null);
+
+useEffect(() => {
+  if (!videoRef.current) return;
+
+  if (isSpeaking) {
+    videoRef.current.play().catch(() => {});
+  } else {
+    videoRef.current.pause();
+    videoRef.current.currentTime = 0; // Resets video back to the starting frame
+  }
+}, [isSpeaking]);
+
 
   // Auto-scroll chat box when new messages arrive
   useEffect(() => {
@@ -365,19 +381,23 @@ const speakText = (text, onCompleteCallback) => {
       <div className="hidden lg:flex lg:col-span-5 h-full max-h-full bg-gradient-to-b from-[#173D57]/30 via-[#0C1721]/50 to-[#173D57]/20 backdrop-blur-2xl border border-white/10 rounded-3xl relative overflow-hidden flex-col justify-end items-center p-6 shadow-2xl group shrink-0">
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-72 h-72 bg-[#4AAEDB]/20 rounded-full blur-[100px] pointer-events-none" />
         
-        <div className={`absolute top-12 right-12 w-32 h-32 border rounded-full pointer-events-none transition-all duration-500 ${
+        <div className={`absolute top-6 right-8 w-32 h-32 border rounded-full pointer-events-none transition-all duration-500 ${
           isSpeaking ? 'border-[#4AAEDB] scale-110 animate-ping' : 'border-[#4AAEDB]/30 animate-spin-slow'
         }`} />
 
-        <div className="relative z-10 w-full h-[85%] flex justify-center items-end overflow-hidden">
-          <img 
-            src={ai} 
-            alt="Aura AI" 
-            className={`max-h-full max-w-full h-auto w-auto object-contain rounded-2xl filter brightness-105 contrast-105 transition-all duration-300 ${
-              isSpeaking ? 'border-[#4AAEDB] shadow-[#4AAEDB]/30' : 'border-transparent'
-            }`}
-          />
-        </div>
+<div className="relative z-10 w-[100%] max-w-[400px] h-[100%] max-h-[430px] flex justify-center items-end overflow-hidden rounded-3xl">
+  <video
+    src={vdo} 
+    ref={videoRef}
+    autoPlay={isSpeaking}
+    loop
+    muted={false} 
+    playsInline
+    className={`w-full h-full object-cover rounded-3xl filter brightness-105 contrast-105 transition-all duration-300 mb-10 ${
+      isSpeaking ? 'border-2 border-[#4AAEDB] shadow-lg shadow-[#4AAEDB]/30' : 'border-2 border-transparent'
+    }`}
+  />
+</div>
 
         <div className="absolute bottom-6 bg-[#0C1721]/80 backdrop-blur-md border border-[#4AAEDB]/40 px-4 py-2 rounded-2xl flex items-center gap-2.5 shadow-xl">
           <span className={`w-2.5 h-2.5 rounded-full ${isSpeaking ? 'bg-cyan-400 animate-bounce' : isListening ? 'bg-rose-500 animate-ping' : 'bg-[#4AAEDB] animate-ping'}`} />
@@ -481,7 +501,7 @@ const speakText = (text, onCompleteCallback) => {
           <div className="flex items-center justify-between w-full px-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
             <span className="flex items-center gap-1.5">
               <span className={`w-2 h-2 rounded-full ${isListening ? 'bg-rose-500 animate-ping' : 'bg-[#4AAEDB] animate-pulse'}`} /> 
-              AURA VOICE FLOW CONTROL
+              AURA VOICE 
             </span>
             <span>
               STATUS: {loading ? 'PROCESSING...' : isListening ? 'LISTENING' : isSpeaking ? 'SPEAKING' : 'HANDS-FREE STEADY'}
@@ -505,8 +525,7 @@ const speakText = (text, onCompleteCallback) => {
             ) : (
               <>
                 <Mic className="w-5 h-5 text-[#4AAEDB]" />
-                <Sparkles className="w-4 h-4 text-cyan-300" /> 
-                INITIATE FLOODLESS FLOW
+                INITIATE Talking
               </>
             )}
           </motion.button>
