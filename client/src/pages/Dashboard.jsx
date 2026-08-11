@@ -5,8 +5,8 @@ import {
   Mic, Volume2, MicOff, RefreshCw, FileText, AlertCircle
 } from 'lucide-react';
 import axios from 'axios';
-import ai from "./assets/ai-assistant.avif";
-import vdo from "./assets/ai-assist-2.mp4";
+import ai from "../assets/ai-assistant.avif";
+import vdo from "../assets/ai-assist-2.mp4";
 import { useNavigate } from 'react-router';
 
 const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -520,7 +520,7 @@ const speakText = (text, onCompleteCallback) => {
           >
             {continuousModeRef.current ? (
               <>
-                <MicOff className="w-5 h-5 animate-bounce" /> Loop Active ➔ Click to Pause Flow
+                <MicOff className="w-5 h-5 animate-bounce" /> Click to Pause 
               </>
             ) : (
               <>
