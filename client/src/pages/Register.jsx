@@ -331,7 +331,7 @@ export default function Register() {
               {/* Existing Route Redirect Link */}
               <motion.p variants={itemVariants} className="text-center text-[10px] text-slate-500 mt-6 font-bold tracking-wide">
                 Already synced to grid?{' '}
-                <span className="text-emerald-400 hover:text-cyan-400 cursor-pointer underline transition-colors">
+                <span className="text-emerald-400 hover:text-cyan-400 cursor-pointer underline transition-colors" onClick={()=> navigate("/login")}>
                   Login 
                 </span>
               </motion.p>

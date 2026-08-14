@@ -47,6 +47,7 @@ const userSchema = new mongoose.Schema(
         message: 'Phone number must be exactly 10 digits',
       },
     },
+    avatar: { type: String, default: '' },
   },
   {
     timestamps: true, // Automatically adds createdAt and updatedAt fields

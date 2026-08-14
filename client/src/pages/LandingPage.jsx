@@ -121,7 +121,7 @@ export default function LandingPage() {
               <div className="relative z-10 flex justify-between items-center w-full">
                 <div className="flex items-center gap-2 bg-slate-900/90 backdrop-blur-xl px-3.5 py-1.5 rounded-full border border-emerald-500/30 shadow-md">
                   <Radio className="w-3.5 h-3.5 text-emerald-400 animate-ping" />
-                  <span className="text-[10px] font-black uppercase text-slate-200 tracking-widest">Neural Link Live</span>
+                  <span className="text-[10px] font-black uppercase text-slate-200 tracking-widest">Practice Link Live</span>
                 </div>
               </div>
 
@@ -185,9 +185,9 @@ export default function LandingPage() {
                 <UserPlus className="w-5 h-5" />
               </div>
               <h4 className="text-lg font-black text-white tracking-wide">Sync Profile</h4>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Initialize immediate neural calibration tracking milestones dynamically.
-              </p>
+             <p className="text-xs text-slate-400 leading-relaxed">
+  Track your daily progress and speaking milestones easily.
+</p>
               <div className="absolute top-2 right-6 text-6xl font-black text-slate-800/40 group-hover:text-emerald-500/10 transition-colors select-none">01</div>
             </motion.div>
 
@@ -203,10 +203,10 @@ export default function LandingPage() {
               <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-500/10 to-emerald-500/10 border border-cyan-500/20 text-cyan-400 flex items-center justify-center shadow-inner">
                 <BarChart3 className="w-5 h-5" />
               </div>
-              <h4 className="text-lg font-black text-white tracking-wide">Select Vector</h4>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Choose specialized dialogue templates matched to real professional parameters.
-              </p>
+             <h4 className="text-lg font-black text-white tracking-wide">Choose a Topic</h4>
+<p className="text-xs text-slate-400 leading-relaxed">
+  Pick a practice topic based on real-life conversations and job situations.
+</p>
               <div className="absolute top-2 right-6 text-6xl font-black text-slate-800/40 group-hover:text-cyan-500/10 transition-colors select-none">02</div>
             </motion.div>
 
@@ -222,10 +222,10 @@ export default function LandingPage() {
               <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-500/10 to-emerald-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center shadow-inner">
                 <BotMessageSquare className="w-5 h-5" />
               </div>
-              <h4 className="text-lg font-black text-white tracking-wide">Live Stream</h4>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Activate speech systems and digest real-time syntactic processing changes instantly.
-              </p>
+           <h4 className="text-lg font-black text-white tracking-wide">Start Speaking</h4>
+<p className="text-xs text-slate-400 leading-relaxed">
+  Talk out loud and get helpful feedback on your sentences in real time.
+</p>
               <div className="absolute top-2 right-6 text-6xl font-black text-slate-800/40 group-hover:text-amber-500/10 transition-colors select-none">03</div>
             </motion.div>
             
@@ -246,12 +246,12 @@ export default function LandingPage() {
             <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-cyan-950 border border-cyan-500/30 text-cyan-400 rounded-xl text-xs font-black uppercase tracking-widest">
               <Layers className="w-3.5 h-3.5" /> Lexical Engine
             </div>
-            <h2 className="text-3xl sm:text-4xl font-black text-white tracking-tight leading-tight">
-              Bite-Sized Multi-Sensory Daily Delivery.
-            </h2>
-            <p className="text-slate-400 text-sm sm:text-base font-medium">
-              Absorb high-tier phrase constructs reinforced with active translation modulations and dynamic sound libraries.
-            </p>
+          <h2 className="text-3xl sm:text-4xl font-black text-white tracking-tight leading-tight">
+  Learn New Words Daily, Step by Step.
+</h2>
+<p className="text-slate-400 text-sm sm:text-base font-medium">
+  Master useful English words with simple Hindi meanings, clear voice audio, and easy example sentences.
+</p>
           </motion.div>
 
           {/* Interactive Lab Card Showcase */}
@@ -360,12 +360,12 @@ export default function LandingPage() {
             <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-950 border border-amber-500/30 text-amber-400 rounded-xl text-xs font-black uppercase tracking-widest">
               <BookOpen className="w-3.5 h-3.5" /> Direct Telemetry
             </div>
-            <h2 className="text-3xl sm:text-4xl font-black text-white tracking-tight leading-tight">
-              Real-Time Synthetic Analysis.
-            </h2>
-            <p className="text-slate-400 text-sm sm:text-base font-medium">
-              Engage seamlessly without manually pausing processes. The core engine dynamically registers accent inconsistencies, outputs instant corrections, and drives smooth dialogue.
-            </p>
+<h2 className="text-3xl sm:text-4xl font-black text-white tracking-tight leading-tight">
+  Live Voice Feedback.
+</h2>
+<p className="text-slate-400 text-sm sm:text-base font-medium">
+  Talk naturally without stopping. The system catches accent mistakes right away, gives quick tips, and keeps the conversation flowing.
+</p>
           </motion.div>
 
         </div>
@@ -373,7 +373,7 @@ export default function LandingPage() {
 
       {/* 📋 IMMUTABLE BRAND METRICS FOOTER */}
       <footer className="w-full bg-[#05070d] border-t border-slate-900 py-8 text-center text-[10px] text-slate-500 font-black uppercase tracking-widest px-4 relative z-10">
-        <p>© 2026 Aura Systems Group. Neural Architectural Protocols reserved.</p>
+ <p>© 2026 Aura Systems. The smart way to learn and speak English.</p>
       </footer>
 
     </div>

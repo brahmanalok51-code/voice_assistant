@@ -62,7 +62,7 @@ export default function VocabularyLevels() {
           <motion.button 
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            onClick={() => navigate('/')}
+            onClick={() => navigate('/dashboard')}
             className="px-4 py-2 bg-[#0e1f40]/80 border border-[#1c3465] hover:bg-[#13264c] text-slate-300 rounded-xl shadow-lg text-xs font-bold flex items-center gap-2 transition-all cursor-pointer backdrop-blur-md"
           >
             <ArrowLeft className="w-4 h-4 text-[#dcb472]" /> Home
@@ -224,7 +224,7 @@ export default function VocabularyLevels() {
       {/* 📱 FIXED BOTTOM APP NAVIGATION BAR */}
       <nav className="fixed bottom-0 inset-x-0 bg-[#061024]/95 backdrop-blur-2xl border-t border-[#16274a] py-3.5 px-6 z-50 flex items-center justify-around lg:hidden">
         <button 
-          onClick={() => navigate('/')}
+          onClick={() => navigate('/dashboard')}
           className="flex flex-col items-center gap-1 text-slate-500 transition-colors hover:text-[#dcb472] cursor-pointer"
         >
           <Home className="w-5 h-5" />
@@ -240,7 +240,8 @@ export default function VocabularyLevels() {
         </button>
 
         {/* Floating AI Core Trigger Node */}
-        <button className="p-3 bg-gradient-to-r from-[#dcb472] to-[#b68c48] rounded-full text-[#071126] shadow-lg shadow-[#b68c48]/30 -mt-7 cursor-pointer flex flex-col items-center justify-center font-black transition-transform active:scale-95">
+        <button className="p-3 bg-gradient-to-r from-[#dcb472] to-[#b68c48] rounded-full text-[#071126] shadow-lg shadow-[#b68c48]/30 -mt-7 cursor-pointer flex flex-col items-center justify-center font-black transition-transform active:scale-95"
+        onClick={()=> navigate("/assistant")}>
           <Bot className="w-5 h-5" />
           <span className="text-[7px] uppercase tracking-tighter mt-0.5">AI Core</span>
         </button>

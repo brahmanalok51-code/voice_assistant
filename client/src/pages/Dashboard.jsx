@@ -1,538 +1,381 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState } from 'react';
+import { motion } from 'framer-motion';
 import { 
-  Sparkles, History, User, Cpu, 
-  Mic, Volume2, MicOff, RefreshCw, FileText, AlertCircle
+  Sparkles, Bot, ArrowRight, Volume2, 
+  User, Zap, Crown, Home, Layers, Play, MessageSquare 
 } from 'lucide-react';
-import axios from 'axios';
-import ai from "../assets/ai-assistant.avif";
-import vdo from "../assets/ai-assist-2.mp4";
 import { useNavigate } from 'react-router';
 
-const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-
-export default function AuraChat() {
-  // --- VOICE & CHAT STATES ---
-  const [sessionId, setSessionId] = useState(null);
-  const [messages, setMessages] = useState([]);
-  const [isListening, setIsListening] = useState(false);
-  const [isSpeaking, setIsSpeaking] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [liveTranscript, setLiveTranscript] = useState('');
-  const [currentQuestion, setCurrentQuestion] = useState('General Introduction');
-  const [conversationMap, setConversationMap] = useState({});
-
+export default function Dashboard() {
+  const [activeTab, setActiveTab] = useState('home');
   const navigate = useNavigate();
 
-  const recognitionRef = useRef(null);
-  const isProcessingRef = useRef(false);
-  const continuousModeRef = useRef(false); // Crucial: Dynamic global pointer loop control
-  const chatBottomRef = useRef(null);
-
-  // Automatically plays video when sound/speaking is true, pauses when false
-const videoRef = useRef(null);
-
-useEffect(() => {
-  if (!videoRef.current) return;
-
-  if (isSpeaking) {
-    videoRef.current.play().catch(() => {});
-  } else {
-    videoRef.current.pause();
-    videoRef.current.currentTime = 0; // Resets video back to the starting frame
-  }
-}, [isSpeaking]);
-
-
-  // Auto-scroll chat box when new messages arrive
-  useEffect(() => {
-    chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, liveTranscript]);
-
- // 🌟 Updated Text-To-Speech Engine (Female Voice Forced)
-const speakText = (text, onCompleteCallback) => {
-  if ('speechSynthesis' in window) {
-    window.speechSynthesis.cancel(); // Clears any pending speech
-    setIsSpeaking(true);
-
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'en-US';
-    utterance.rate = 0.95; // Speaking speed
-    utterance.pitch = 1.2; // Pitch badhane se voice female accent ke pass jati hai
-
-    // 👩 FEMALE VOICE SELECTOR LOGIC
-    const voices = window.speechSynthesis.getVoices();
-    
-    // System mein available Female voices search karein (e.g., Zira, Samantha, Google US English Female)
-    const femaleVoice = voices.find(voice => 
-      voice.lang.includes('en') && 
-      (voice.name.includes('Female') || 
-       voice.name.includes('Zira') || 
-       voice.name.includes('Samantha') || 
-       voice.name.includes('Google US English') || 
-       voice.name.includes('Victoria'))
-    );
-
-    // Agar female voice mil jaye toh apply karein, warna pitch high karke chalaein
-    if (femaleVoice) {
-      utterance.voice = femaleVoice;
-    }
-
-    utterance.onend = () => {
-      setIsSpeaking(false);
-      if (onCompleteCallback) onCompleteCallback();
-    };
-
-    utterance.onerror = (err) => {
-      console.error("Speech Synthesis Error:", err);
-      setIsSpeaking(false);
-      if (onCompleteCallback) onCompleteCallback();
-    };
-
-    window.speechSynthesis.speak(utterance);
-  } else if (onCompleteCallback) {
-    onCompleteCallback();
-  }
-};
-
-  // 🌟 2. Mic Activation Helper
-  const startListening = () => {
-    // Agar AI bol raha hai ya request processing mein hai, toh mic start mat karo
-    if (isProcessingRef.current || window.speechSynthesis.speaking) return;
-    
-    if (recognitionRef.current) {
-      try {
-        recognitionRef.current.start();
-      } catch (err) {
-        console.log("Mic operational notice:", err.message);
-      }
+  // Staggered Entry Animations
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: { staggerChildren: 0.06 }
     }
   };
 
-  // 🌟 3. Initialize Web Speech Engine & Session on Mount
-  useEffect(() => {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (SpeechRecognition) {
-      const rec = new SpeechRecognition();
-      rec.continuous = false; 
-      rec.interimResults = true;
-      rec.lang = 'en-US';
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 100, damping: 16 } }
+  };
 
-      rec.onstart = () => {
-        setIsListening(true);
-      };
-
-      rec.onresult = (event) => {
-        const transcript = Array.from(event.results)
-          .map(result => result[0].transcript)
-          .join('');
-
-        setLiveTranscript(transcript);
-
-        // Auto Send to AI when user finishes sentence
-        if (event.results[0].isFinal && transcript.trim()) {
-          rec.stop(); // Safe speech detection halt
-          handleSendMessage(transcript);
-        }
-      };
-
-      rec.onerror = (e) => {
-        console.error("Mic Recognition Error:", e.error);
-        setIsListening(false);
-        
-        // Loop Recovery Protection: Agar continuous mode active hai aur noise error aaye, toh mic reset karo
-        if (continuousModeRef.current && e.error !== 'aborted') {
-          setTimeout(() => startListening(), 1000);
-        }
-      };
-
-      rec.onend = () => {
-        setIsListening(false);
-        // Chain Reaction: Agar continuous mode true hai aur AI processing nahi kar raha, toh mic zinda rakho
-        if (continuousModeRef.current && !isProcessingRef.current && !window.speechSynthesis.speaking) {
-          setTimeout(() => startListening(), 400);
-        }
-      };
-
-      recognitionRef.current = rec;
-    }
-
-    // Load initial session on mount
-    initSession();
-
-    return () => {
-      continuousModeRef.current = false;
-      if (window.speechSynthesis) window.speechSynthesis.cancel();
-      if (recognitionRef.current) recognitionRef.current.stop();
-    };
-  }, []);
-
-  // 🌟 4. Session Initialization Route Hook
-  const initSession = async () => {
-    setLoading(true);
-    try {
-      const res = await axios.post(`${apiUrl}/api/session/init`, { userId: 'default_user' });
-      setSessionId(res.data.sessionId);
-
-      const greetingText = res.data.greeting || "Hello Alok! I am Aura, your AI English practice assistant. What topic would you like to speak about today?";
-      setCurrentQuestion(greetingText);
+  return (
+    // Base Background upgraded to match PricingPage.jsx
+    <div className="min-h-screen bg-[#090d16] text-slate-300 font-sans antialiased pb-32 lg:pb-16 relative overflow-hidden selection:bg-emerald-500/30 selection:text-emerald-200">
       
-      setMessages([{ 
-        id: Date.now(), 
-        sender: 'aurora', 
-        text: greetingText, 
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) 
-      }]);
+      {/* 🌌 High-Tech Background Ambient Glows */}
+      <div className="absolute -top-40 -right-40 w-[500px] h-[500px] bg-emerald-500/10 rounded-full blur-[140px] pointer-events-none z-0" />
+      <div className="absolute -bottom-40 -left-40 w-[500px] h-[500px] bg-cyan-500/10 rounded-full blur-[140px] pointer-events-none z-0" />
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,#1e293b_1px,transparent_1px),linear-gradient(to_bottom,#1e293b_1px,transparent_1px)] bg-[size:4rem_4rem] opacity-15 pointer-events-none z-0" />
 
-    } catch (err) {
-      console.error("Session Init Error:", err);
-      const fallbackGreeting = "Hello Alok! I am Aura, your AI English practice assistant. Let's practice English together!";
-      setMessages([{ 
-        id: Date.now(), 
-        sender: 'aurora', 
-        text: fallbackGreeting, 
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) 
-      }]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // 🌟 5. Main Chat Pipeline (Validates Grammar & Calls /api/chat)
-  const handleSendMessage = async (userText) => {
-    if (!userText.trim() || isProcessingRef.current) return;
-
-    isProcessingRef.current = true;
-    setLoading(true);
-    setLiveTranscript('');
-
-    const currentTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-    // Step A: Immediate UI Update with User input
-    setMessages(prev => [...prev, { 
-      id: Date.now(), 
-      sender: 'user', 
-      text: userText, 
-      time: currentTime 
-    }]);
-
-    setConversationMap(prev => ({ ...prev, [currentQuestion]: userText }));
-
-    try {
-      // Step B: Parallel grammar evaluation trigger
-      axios.post(`${apiUrl}/api/validate-answer`, {
-        currentQuestion: currentQuestion,
-        currentAnswer: userText
-      }).then(valRes => {
-        if (valRes.data && valRes.data.hasGrammarIssues) {
-          setMessages(prev => [...prev, {
-            id: Date.now() + 0.5,
-            sender: 'system_tip',
-            text: `Grammar Tip: rewrite ➔ "${valRes.data.grammarCorrected}"`,
-            time: currentTime
-          }]);
-        }
-      }).catch(err => console.warn("Grammar framework warning bypass:", err));
-
-      // Step C: Live AI response generation fetch
-      const res = await axios.post(`${apiUrl}/api/chat`, {
-        sessionId,
-        userMessage: userText
-      });
-
-      const aiReply = res.data.reply;
-      setCurrentQuestion(aiReply); // Target tracking state adjustment
-
-      // Step D: Append AI Reply text content to chat box
-      setMessages(prev => [...prev, { 
-        id: Date.now() + 1, 
-        sender: 'aurora', 
-        text: aiReply, 
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) 
-      }]);
-
-      // Step E: Trigger Voice out ➔ Complete callback activates Mic instantly
-      speakText(aiReply, () => {
-        isProcessingRef.current = false;
-        if (continuousModeRef.current) {
-          startListening();
-        }
-      });
-
-    } catch (err) {
-      console.error("Chat API Integration Error:", err);
-      isProcessingRef.current = false;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // 🌟 6. Toggle Hands-Free Conversation Flow Controller
-  const handleToggleVoice = () => {
-    if (isListening || continuousModeRef.current) {
-      continuousModeRef.current = false;
-      if (recognitionRef.current) recognitionRef.current.stop();
-      if (window.speechSynthesis) window.speechSynthesis.cancel();
-      setIsListening(false);
-      setIsSpeaking(false);
-    } else {
-      continuousModeRef.current = true;
-      startListening();
-    }
-  };
-
-  // 🌟 7. Reset Session Handler
-  const handleResetSession = async () => {
-    continuousModeRef.current = false;
-    if (window.speechSynthesis) window.speechSynthesis.cancel();
-    if (recognitionRef.current) recognitionRef.current.stop();
-    setMessages([]);
-    setLiveTranscript('');
-    setConversationMap({});
-    await initSession();
-  };
-
-  // 🌟 8. End Practice Log Session and Save File 
-  const handleEndAndSaveSession = async () => {
-    if (Object.keys(conversationMap).length === 0) {
-      alert("Please engage in at least one practice exchange before finalizing.");
-      return;
-    }
-
-    continuousModeRef.current = false;
-    if (window.speechSynthesis) window.speechSynthesis.cancel();
-    if (recognitionRef.current) recognitionRef.current.stop();
-
-    setLoading(true);
-    try {
-      const response = await axios.post(`${apiUrl}/api/generate-report`, {
-        symptom: "General English Practice Session",
-        answers: conversationMap
-      }, { responseType: 'blob' });
-
-      const blob = new Blob([response.data], { type: 'application/pdf' });
-      const downloadUrl = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = downloadUrl;
-      link.setAttribute('download', `Aura_English_Report_${Date.now()}.pdf`);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-
-      alert("Practice summary logged into DB successfully!");
-      handleResetSession();
-    } catch (err) {
-      console.error("Report System Issue:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
- return (
-  <div className="w-full min-h-screen bg-[#0C1721] text-white font-sans flex flex-col justify-between p-1 selection:bg-[#4AAEDB] selection:text-white overflow-hidden">
-    
-    {/* 🚀 TOP NAVIGATION HEADER */}
-    <header className="w-full max-w-7xl mx-auto bg-[#173D57]/30 backdrop-blur-xl border border-white/10 rounded-2xl px-4 md:px-6 py-2 flex items-center justify-between shadow-2xl mb-2 shrink-0">
-      <div className="flex items-center gap-3 cursor-pointer group" onClick={() => navigate("/")}>
-        <div className="w-10 h-10 bg-gradient-to-br from-[#4AAEDB] to-[#173D57] rounded-xl flex items-center justify-center text-white shadow-lg shadow-[#4AAEDB]/20 group-hover:scale-105 transition-transform">
-          <Cpu className="w-6 h-6 stroke-[2]" />
-        </div>
-        <span className="font-black text-xl md:text-2xl tracking-wider bg-gradient-to-r from-white via-[#4AAEDB] to-cyan-300 bg-clip-text text-transparent">
-          AURA
-        </span>
-      </div>
-
-      <div className="flex items-center gap-2 sm:gap-3">
-        <button 
-          onClick={handleResetSession}
-          title="Reset Session"
-          className="p-2 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 text-slate-300 hover:text-white transition-all cursor-pointer"
-        >
-          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-[#4AAEDB]' : ''}`} />
-        </button>
-
-        <button 
-          onClick={handleEndAndSaveSession}
-          title="End Session & Export PDF Report"
-          className="px-3 py-2 bg-emerald-500/20 hover:bg-emerald-500 border border-emerald-500/40 text-emerald-300 hover:text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition-all cursor-pointer"
-        >
-          <FileText className="w-4 h-4" />
-          <span className="hidden md:inline">Save Session</span>
-        </button>
-
-        <button className="p-2 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 text-slate-300 hover:text-white transition-all">
-          <User className="w-4 h-4" />
-        </button>
-
-        <button 
-          onClick={() => navigate("/history")}
-          className="px-3.5 py-2 bg-[#173D57]/80 hover:bg-[#4AAEDB] border border-[#4AAEDB]/40 rounded-xl text-xs font-bold tracking-wide flex items-center gap-2 transition-all shadow-md shadow-[#4AAEDB]/10 group cursor-pointer"
-        >
-          <History className="w-4 h-4 text-[#4AAEDB] group-hover:text-white transition-colors" />
-          <span className="hidden sm:inline">History</span>
-        </button>
-      </div>
-    </header>
-
-    {/* 🔮 MAIN INTERACTIVE BODY CONTAINER (Height locked cleanly via calculated screen bounds) */}
-    <main className="w-full max-w-7xl mx-auto flex-grow h-[calc(100vh-140px)] min-h-[500px] grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch relative z-10 ml-0 sm:ml-10 overflow-hidden mb-2">
-
-      {/* 👧 DESKTOP CENTER LEFT: AVATAR DISPLAY (Locked dimensions preventing image stretching or distortion) */}
-      <div className="hidden lg:flex lg:col-span-5 h-full max-h-full bg-gradient-to-b from-[#173D57]/30 via-[#0C1721]/50 to-[#173D57]/20 backdrop-blur-2xl border border-white/10 rounded-3xl relative overflow-hidden flex-col justify-end items-center p-6 shadow-2xl group shrink-0">
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-72 h-72 bg-[#4AAEDB]/20 rounded-full blur-[100px] pointer-events-none" />
-        
-        <div className={`absolute top-6 right-8 w-32 h-32 border rounded-full pointer-events-none transition-all duration-500 ${
-          isSpeaking ? 'border-[#4AAEDB] scale-110 animate-ping' : 'border-[#4AAEDB]/30 animate-spin-slow'
-        }`} />
-
-<div className="relative z-10 w-[100%] max-w-[400px] h-[100%] max-h-[430px] flex justify-center items-end overflow-hidden rounded-3xl">
-  <video
-    src={vdo} 
-    ref={videoRef}
-    autoPlay={isSpeaking}
-    loop
-    muted={false} 
-    playsInline
-    className={`w-full h-full object-cover rounded-3xl filter brightness-105 contrast-105 transition-all duration-300 mb-10 ${
-      isSpeaking ? 'border-2 border-[#4AAEDB] shadow-lg shadow-[#4AAEDB]/30' : 'border-2 border-transparent'
-    }`}
-  />
-</div>
-
-        <div className="absolute bottom-6 bg-[#0C1721]/80 backdrop-blur-md border border-[#4AAEDB]/40 px-4 py-2 rounded-2xl flex items-center gap-2.5 shadow-xl">
-          <span className={`w-2.5 h-2.5 rounded-full ${isSpeaking ? 'bg-cyan-400 animate-bounce' : isListening ? 'bg-rose-500 animate-ping' : 'bg-[#4AAEDB] animate-ping'}`} />
-          <span className="text-xs font-extrabold uppercase tracking-widest text-[#4AAEDB]">
-            {isSpeaking ? 'AURORA SPEAKING...' : isListening ? 'AURORA LISTENING...' : 'AURORA ONLINE'}
-          </span>
-        </div>
-      </div>
-
-      {/* 💬 RIGHT SIDE: WHATSAPP STYLE CHAT CONTAINER (Clean internal routing with no-scrollbar overflow control) */}
-      <div className="col-span-1 lg:col-span-6 h-full max-h-full bg-gradient-to-b from-[#173D57]/40 via-[#102333]/60 to-[#0C1721]/80 backdrop-blur-2xl border border-white/10 rounded-3xl p-4 sm:p-6 flex flex-col justify-between shadow-2xl relative overflow-y-auto no-scrollbar">
-        
-        <div className="flex items-center justify-between pb-4 border-b border-white/10 mb-4 shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="relative">
-              <img 
-                src={ai} 
-                className="w-11 h-11 rounded-2xl object-cover border border-[#4AAEDB]"
-              />
-              <span className={`absolute bottom-0 right-0 w-3 h-3 border-2 border-[#0C1721] rounded-full ${
-                isSpeaking ? 'bg-cyan-400 animate-ping' : 'bg-emerald-400'
-              }`} />
+      {/* 🔮 TOP APPLICATION NAVBAR */}
+      <header className="sticky top-0 z-50 bg-slate-950/60 backdrop-blur-xl border-b border-slate-800/80 px-4 sm:px-8 py-4 shadow-sm">
+        <div className="max-w-[1700px] mx-auto flex items-center justify-between">
+          
+          {/* Logo Signature */}
+          <div className="flex items-center gap-2.5 cursor-pointer">
+            <div className="p-2 bg-gradient-to-br from-emerald-400 to-cyan-500 rounded-xl shadow-[0_0_15px_rgba(52,211,153,0.3)]">
+              <Sparkles className="w-4 h-4 text-slate-950 animate-pulse" />
             </div>
-            <div className="text-left">
-              <h3 className="text-xs font-bold uppercase tracking-widest text-[#4AAEDB]">Girl Assistant</h3>
-              <h2 className="text-lg font-black text-white tracking-wide">AURORA</h2>
-            </div>
+            <span className="text-base font-black tracking-widest text-white uppercase">Lingo<span className="text-cyan-400">AI</span></span>
           </div>
 
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] bg-[#4AAEDB]/10 border border-[#4AAEDB]/30 text-[#4AAEDB] px-3 py-1 rounded-full font-extrabold tracking-wider uppercase">
-              {isSpeaking ? 'Speaking' : isListening ? 'Listening' : 'Flow Active'}
-            </span>
+          {/* Action Hub Panel */}
+          <div className="flex items-center gap-3 sm:gap-5">
+            {/* User Profile Button */}
+            <motion.button 
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-400 to-cyan-500 p-[2px] shadow-lg shadow-emerald-500/20 cursor-pointer flex shrink-0"
+              onClick={()=> navigate("/profile")}
+            >
+              <div className="w-full h-full bg-slate-950 rounded-[10px] flex items-center justify-center relative overflow-hidden">
+                <User className="w-5 h-5 text-emerald-400 relative z-10" />
+                {/* Subtle radial sheen on hover */}
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(52,211,153,0.15),transparent_70%)] opacity-0 hover:opacity-100 transition-opacity" />
+              </div>
+            </motion.button>
           </div>
         </div>
+      </header>
 
-        {/* MESSAGES LAYER (Takes up available space and scrolls internally) */}
-        <div className="flex-grow overflow-y-auto space-y-4 pr-1 no-scrollbar flex flex-col justify-end mb-2">
-          <div className="space-y-4 overflow-y-auto no-scrollbar pr-1">
-            <AnimatePresence>
-              {messages.map((msg) => (
-                <motion.div 
-                  key={msg.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0 }}
-                  className={`flex flex-col ${
-                    msg.sender === 'user' 
-                      ? 'items-end' 
-                      : msg.sender === 'system_tip' 
-                      ? 'items-center my-1' 
-                      : 'items-start'
-                  }`}
-                >
-                  {msg.sender === 'system_tip' ? (
-                    <div className="max-w-[90%] px-3.5 py-2 bg-amber-500/10 border border-amber-500/30 rounded-xl text-[11px] text-amber-200 font-medium flex items-center gap-2 shadow-sm">
-                      <AlertCircle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                      <span>{msg.text}</span>
+      {/* 🛸 MAIN DASHBOARD ENGINE PLATFORM */}
+      <main className="max-w-[1700px] mx-auto px-2 sm:px-6 lg:px-8 pt-3 relative z-10 space-y-3">
+        
+        {/* Banner Component */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="relative bg-slate-900/40 border border-slate-800 backdrop-blur-xl rounded-3xl p-6 sm:p-8 shadow-2xl ring-4 ring-emerald-500/5 overflow-hidden"
+        >
+          {/* Top Border Laser Accent */}
+          <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-emerald-400/40 to-cyan-500/40 rounded-full" />
+
+          {/* Responsive Layout Shell */}
+          <div className="flex flex-col sm:flex-row justify-between items-center gap-3 w-full">
+            
+            {/* Left Hand Text Blocks */}
+            <div className="space-y-2 text-center sm:text-left flex-grow max-w-2xl">
+              <h1 className="text-2xl sm:text-4xl lg:text-5xl font-extrabold text-white tracking-tight">
+                Welcome back, <span className="bg-gradient-to-r from-emerald-400 via-cyan-400 to-amber-300 bg-clip-text text-transparent relative">Learner!<span className="absolute -bottom-1 lg:-bottom-2 left-0 w-full h-1 bg-gradient-to-r from-emerald-400 via-cyan-400 to-amber-300 rounded-full"></span></span>
+              </h1>
+              <p className="text-sm font-semibold tracking-wide text-cyan-400/90 pt-1 lg:pt-3 uppercase flex items-center justify-center sm:justify-start gap-1.5">
+                 Ready to make progress today?
+              </p>
+            </div>
+
+            {/* Right Hand: Attractive Chat with AI Node */}
+            <div className="w-full sm:w-auto flex justify-center shrink-0">
+              <motion.div
+                whileHover={{ scale: 1.03, boxShadow: "0 15px 35px rgba(52, 211, 153, 0.2)" }}
+                whileTap={{ scale: 0.98 }}
+                onClick={()=> navigate("/assistant")}
+                className="relative w-full sm:w-auto rounded-3xl p-px bg-gradient-to-br from-emerald-400 via-cyan-400 to-emerald-500 bg-[size:400%_auto] shadow-lg cursor-pointer min-w-[280px] overflow-hidden"
+              >
+                {/* Visual Background Image Overlay */}
+                <div 
+                  className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=600&auto=format&fit=crop')] bg-cover bg-center opacity-20 pointer-events-none mix-blend-overlay"
+                />
+
+                <div className="relative bg-slate-950/80 backdrop-blur-lg px-6 py-5 flex items-center gap-4 rounded-[23px]">
+                  {/* Robot Display Matrix */}
+                  <div className="w-14 h-12 bg-slate-950 border border-slate-800 rounded-xl p-1 flex flex-col justify-around shadow-inner relative overflow-hidden shrink-0 z-10">
+                    <div className="flex justify-around items-center w-full px-0.5">
+                      <motion.div 
+                        animate={{ scaleY: [1, 0.2, 1] }} 
+                        transition={{ repeat: Infinity, repeatDelay: 2.2, duration: 0.15 }}
+                        className="w-3 h-3 bg-emerald-400 rounded-sm shadow-[0_0_8px_#34d399]" 
+                      />
+                      <motion.div 
+                        animate={{ scaleY: [1, 0.2, 1] }} 
+                        transition={{ repeat: Infinity, repeatDelay: 2.2, duration: 0.15 }}
+                        className="w-3 h-3 bg-emerald-400 rounded-sm shadow-[0_0_8px_#34d399]" 
+                      />
                     </div>
-                  ) : (
-                    <div className={`max-w-[85%] sm:max-w-[75%] p-3.5 sm:p-4 rounded-2xl text-xs sm:text-sm font-medium leading-relaxed relative text-left ${
-                      msg.sender === 'user' 
-                        ? 'bg-[#173D57] text-white border border-white/10 rounded-br-none shadow-md' 
-                        : 'bg-gradient-to-r from-[#173D57]/90 to-[#102B3F] text-slate-100 border border-[#4AAEDB]/30 rounded-bl-none shadow-lg'
-                    }`}>
-                      {msg.sender === 'aurora' && (
-                        <div className="flex items-center justify-between gap-2 mb-1">
-                          <span className="text-[10px] font-extrabold text-[#4AAEDB] uppercase tracking-wider">AURORA</span>
-                          <Volume2 className={`w-3.5 h-3.5 text-[#4AAEDB] ${isSpeaking ? 'animate-bounce' : ''}`} />
-                        </div>
-                      )}
-                      <p>{msg.text}</p>
-                    </div>
-                  )}
-
-                  {msg.sender !== 'system_tip' && (
-                    <span className="text-[9px] text-slate-500 font-bold mt-1 px-1">
-                      {msg.time}
-                    </span>
-                  )}
-                </motion.div>
-              ))}
-
-              {liveTranscript && (
-                <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col items-end">
-                  <div className="max-w-[85%] sm:max-w-[75%] p-3.5 sm:p-4 rounded-2xl text-xs sm:text-sm font-medium leading-relaxed bg-[#173D57]/60 text-slate-300 border border-[#4AAEDB]/30 border-dashed rounded-br-none">
-                    <p className="text-left italic">{liveTranscript}...</p>
+                    <motion.div 
+                      animate={{ scaleX: [1, 1.4, 0.8, 1] }}
+                      transition={{ repeat: Infinity, duration: 1, ease: "easeInOut" }}
+                      className="w-7 h-0.5 bg-cyan-400 rounded-full mx-auto" 
+                    />
                   </div>
-                  <span className="text-[9px] text-[#4AAEDB] font-bold mt-1 px-1 animate-pulse">
-                    Listening live...
-                  </span>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-          <div ref={chatBottomRef} />
-        </div>
 
-        {/* CONTROLLER MODULE */}
-        <div className="mt-auto pt-4 border-t border-white/10 flex flex-col items-center gap-3 shrink-0">
-          <div className="flex items-center justify-between w-full px-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-            <span className="flex items-center gap-1.5">
-              <span className={`w-2 h-2 rounded-full ${isListening ? 'bg-rose-500 animate-ping' : 'bg-[#4AAEDB] animate-pulse'}`} /> 
-              AURA VOICE 
-            </span>
-            <span>
-              STATUS: {loading ? 'PROCESSING...' : isListening ? 'LISTENING' : isSpeaking ? 'SPEAKING' : 'HANDS-FREE STEADY'}
-            </span>
-          </div>
+                  {/* Subtext Command Interface */}
+                  <div className="text-left space-y-1 relative z-10 flex-grow">
+                    <span className="block text-[10px] font-black uppercase text-emerald-400 tracking-widest animate-pulse">
+                      AI Buddy Ready
+                    </span>
+                    <div className="flex items-center justify-between text-base font-black text-white">
+                      <span>Chat with AI</span>
+                      <ArrowRight className="w-5 h-5 text-cyan-300 group-hover:translate-x-1 transition-transform" />
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            </div>
 
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.99 }}
-            onClick={handleToggleVoice}
-            className={`w-full py-4 rounded-2xl font-black text-sm uppercase tracking-widest flex items-center justify-center gap-3 border transition-all duration-300 shadow-2xl cursor-pointer ${
-              continuousModeRef.current
-                ? 'bg-gradient-to-r from-rose-500 via-purple-600 to-indigo-600 text-white border-rose-400 shadow-rose-500/30' 
-                : 'bg-gradient-to-r from-[#4AAEDB] via-[#173D57] to-[#0C1721] text-white border-[#4AAEDB]/50 hover:border-[#4AAEDB] shadow-[#4AAEDB]/20'
-            }`}
+          </div>
+        </motion.div>
+
+        {/* 🎮 GRID PLATFORM ACTION HOUSING */}
+        <motion.div 
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+          className="space-y-4 w-full"
+        >
+          <motion.h2 
+            variants={itemVariants}
+            className="text-xl font-black text-white tracking-tight flex items-center gap-2.5"
           >
-            {continuousModeRef.current ? (
-              <>
-                <MicOff className="w-5 h-5 animate-bounce" /> Click to Pause 
-              </>
-            ) : (
-              <>
-                <Mic className="w-5 h-5 text-[#4AAEDB]" />
-                INITIATE Talking
-              </>
-            )}
-          </motion.button>
-        </div>
+            <Zap className="w-5 h-5 text-emerald-400 animate-pulse" /> Active Modules
+          </motion.h2>
 
-      </div>
-    </main>
-  </div>
-);
+          {/* Main Grid Matrix - Reduced Gap, supporting 3 columns on large screens */}
+          <motion.div 
+            variants={containerVariants}
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 w-full mx-auto"
+          >
+            {/* Mode Node 2: Daily Vocabulary */}
+            <motion.div 
+              variants={itemVariants}
+              whileHover={{ y: -4, scale: 1.01 }}
+              className="relative group rounded-3xl p-px bg-gradient-to-b from-cyan-500/40 via-slate-800 to-transparent hover:from-cyan-400 hover:to-slate-700 transition-all duration-500 shadow-sm hover:shadow-xl hover:shadow-cyan-500/10 overflow-hidden"
+            >
+              <div className="relative bg-slate-900/50 backdrop-blur-xl border border-slate-800/80 p-6 rounded-[23px] flex flex-col justify-between h-full min-h-[180px] overflow-hidden">
+                
+                {/* Background Image Overlay */}
+                <div 
+                  className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1557683316-973673baf926?q=80&w=600&auto=format&fit=crop')] bg-cover bg-center opacity-[0.06] group-hover:opacity-[0.1] group-hover:scale-110 pointer-events-none transition-all duration-700 mix-blend-overlay"
+                />
+
+                {/* Ambient Gradient Glow */}
+                <div className="absolute -top-10 -right-10 w-32 h-32 bg-cyan-500/10 rounded-full blur-xl group-hover:bg-cyan-500/20 transition-all duration-500" />
+
+                {/* Content Block: Symbol and Text Headers in One Row */}
+                <div className="relative z-10 space-y-3">
+                  <div className="flex items-center gap-4">
+                    <div className="w-11 h-11 bg-slate-950 border border-slate-800 text-cyan-400 rounded-xl flex items-center justify-center shrink-0 shadow-lg shadow-cyan-500/10 group-hover:-rotate-6 group-hover:scale-110 transition-transform duration-300">
+                      <Volume2 className="w-5 h-5" />
+                    </div>
+                    <div className="space-y-0.5">
+                      <span className="inline-block text-[9px] font-black uppercase tracking-widest text-cyan-400 bg-cyan-950/60 px-2.5 py-0.5 rounded-full border border-cyan-500/30">
+                        Lexical
+                      </span>
+                      <h3 className="text-lg font-extrabold text-white group-hover:text-cyan-400 transition-colors tracking-tight">
+                        Daily Vocabulary
+                      </h3>
+                    </div>
+                  </div>
+                  
+                </div>
+
+                {/* Highly Animated Vibrant Gradient "Start Practice" Button */}
+                <motion.button 
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="relative mt-5 z-10 w-full group/btn cursor-pointer"
+                  onClick={()=> navigate("/level")}
+                >
+                  <div className="absolute -inset-1 bg-gradient-to-r from-cyan-500 via-teal-400 to-cyan-600 rounded-xl blur opacity-40 group-hover/btn:opacity-100 transition duration-500 animate-pulse" />
+                  
+                  <div className="relative w-full py-3 px-4 rounded-xl bg-gradient-to-r from-cyan-500 via-teal-500 to-cyan-500 bg-[size:200%_auto] hover:bg-right transition-all duration-500 flex items-center justify-center gap-3 text-slate-950 font-black text-xs tracking-wider shadow-md">
+                    <span>START PRACTICE</span>
+                    <Play className="w-3.5 h-3.5 fill-current group-hover/btn:translate-x-0.5 transition-transform" />
+                  </div>
+                </motion.button>
+
+              </div>
+            </motion.div>
+
+            {/* 🆕 Mode Node 1: Smart Dialogue (Enhanced Image & Full-Width CTA) */}
+            <motion.div 
+              variants={itemVariants}
+              whileHover={{ y: -4, scale: 1.01 }}
+              className="relative group rounded-3xl p-px bg-gradient-to-b from-emerald-500/40 via-slate-800 to-transparent hover:from-emerald-400 hover:to-slate-700 transition-all duration-500 shadow-sm hover:shadow-xl hover:shadow-emerald-500/10 overflow-hidden col-span-1 md:col-span-2 lg:col-span-1"
+            >
+              <div className="relative bg-slate-900/50 backdrop-blur-xl border border-slate-800/80 p-6 rounded-[23px] flex flex-col justify-between h-full min-h-[220px] overflow-hidden">
+                
+                {/* Background Image */}
+                <motion.div 
+                  whileHover={{ scale: 1.06 }}
+                  transition={{ type: "tween", duration: 0.6 }}
+                  className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1543269865-cbf427effbad?q=80&w=800&auto=format&fit=crop')] bg-cover bg-center opacity-[0.12] group-hover:opacity-[0.20] pointer-events-none transition-all duration-700 mix-blend-overlay"
+                />
+
+                {/* Ambient Gradient Glow */}
+                <div className="absolute -top-10 -right-10 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl group-hover:bg-emerald-500/20 transition-all duration-500" />
+
+                {/* Header & Content */}
+                <div className="relative z-10 space-y-3">
+                  <div className="flex items-center gap-4">
+                    <div className="w-11 h-11 bg-slate-950 border border-slate-800 text-emerald-400 rounded-xl flex items-center justify-center shrink-0 shadow-lg shadow-emerald-500/10 group-hover:rotate-6 group-hover:scale-110 transition-transform duration-300">
+                      <MessageSquare className="w-5 h-5" />
+                    </div>
+                    <div className="space-y-0.5">
+                      <span className="inline-block text-[9px] font-black uppercase tracking-widest text-emerald-400 bg-emerald-950/60 px-2.5 py-0.5 rounded-full border border-emerald-500/30">
+                        Voice Practice
+                      </span>
+                      <h3 className="text-lg font-extrabold text-white group-hover:text-emerald-400 transition-colors tracking-tight">
+                        Smart Dialogue
+                      </h3>
+                    </div>
+                  </div>
+                  
+                  {/* Description Text */}
+                  <p className="text-sm font-medium text-slate-400 leading-relaxed pl-1 pt-1 drop-shadow-sm">
+                    Practice natural, real-time conversations to build your speaking confidence.
+                  </p>
+                </div>
+
+                {/* Standardized Full-Width Animated "Start Practice" Button */}
+                <motion.button 
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="relative mt-5 z-10 w-full group/btn cursor-pointer"
+                >
+                  <div className="absolute -inset-1 bg-gradient-to-r from-emerald-500 via-cyan-400 to-emerald-600 rounded-xl blur opacity-40 group-hover/btn:opacity-100 transition duration-500 animate-pulse" />
+                  
+                  <div className="relative w-full py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-400 to-cyan-500 text-slate-950 font-black text-xs tracking-wider shadow-md flex items-center justify-center gap-3">
+                    <span>START PRACTICE</span>
+                    <Play className="w-3.5 h-3.5 fill-current group-hover/btn:translate-x-0.5 transition-transform" />
+                  </div>
+                </motion.button>
+
+              </div>
+            </motion.div>
+
+            {/* Mode Node 3: Upgraded Premium Subscription Box */}
+            <motion.div 
+              variants={itemVariants}
+              whileHover={{ y: -4, scale: 1.01 }}
+              className="relative group rounded-3xl p-px bg-gradient-to-b from-amber-500/40 via-slate-800 to-transparent hover:from-amber-400 hover:to-slate-700 transition-all duration-500 shadow-sm hover:shadow-xl hover:shadow-amber-500/10 overflow-hidden"
+            >
+              <div className="relative bg-slate-900/50 backdrop-blur-xl border border-slate-800/80 p-6 rounded-[23px] flex flex-col justify-between h-full min-h-[220px] overflow-hidden">
+                
+                {/* Background Image Overlay */}
+                <div 
+                  className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1579546929518-9e396f3cc809?q=80&w=600&auto=format&fit=crop')] bg-cover bg-center opacity-[0.08] group-hover:opacity-[0.14] group-hover:scale-110 pointer-events-none transition-all duration-700 mix-blend-overlay"
+                />
+
+                {/* Ambient Gradient Glow */}
+                <div className="absolute -top-10 -right-10 w-32 h-32 bg-amber-500/10 rounded-full blur-xl group-hover:bg-amber-500/20 transition-all duration-500" />
+
+                {/* Content Block: Symbol and Text Headers in One Row */}
+                <div className="relative z-10 space-y-3">
+                  <div className="flex items-center gap-4">
+                    <div className="w-11 h-11 bg-slate-950 border border-slate-800 text-amber-400 rounded-xl flex items-center justify-center shrink-0 shadow-lg shadow-amber-500/10 group-hover:rotate-6 group-hover:scale-110 transition-transform duration-300">
+                      <Crown className="w-5 h-5 fill-current" />
+                    </div>
+                    <div className="space-y-0.5">
+                      <span className="inline-block text-[9px] font-black uppercase tracking-widest text-amber-400 bg-amber-950/60 border border-amber-500/30 px-2.5 py-0.5 rounded-full">
+                        VIP Pass
+                      </span>
+                      <h3 className="text-lg font-extrabold text-white transition-colors tracking-tight">
+                        Go Premium
+                      </h3>
+                    </div>
+                  </div>
+                  
+                  {/* Simplified Lower Description Text */}
+                  <p className="text-sm text-slate-400 leading-relaxed pl-1 pt-1">
+                    Get unlimited chat sessions, full dialogue history, and special achievement badges.
+                  </p>
+                </div>
+
+                {/* Animated Premium CTA Upgrade Button */}
+                <motion.button 
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => navigate('/premium')}
+                  className="relative mt-5 z-10 w-full group/btn cursor-pointer"
+                >
+                  <div className="absolute -inset-1 bg-gradient-to-r from-amber-400 via-orange-400 to-amber-500 rounded-xl blur opacity-40 group-hover/btn:opacity-100 transition duration-500 animate-pulse" />
+                  
+                  <div className="relative w-full py-3 px-4 rounded-xl bg-gradient-to-r from-amber-400 via-orange-500 to-purple-600 text-slate-950 font-black text-xs tracking-widest shadow-md flex items-center justify-center gap-2.5">
+                    <span>UPGRADE ACCOUNT</span>
+                    <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
+                  </div>
+                </motion.button>
+
+              </div>
+            </motion.div>
+
+          </motion.div>
+        </motion.div>
+
+      </main>
+
+      {/* 📱 FIXED BOTTOM APP NAVIGATION BAR (Glassmorphism Dark) */}
+      <nav className="fixed bottom-0 inset-x-4 max-w-lg mx-auto bg-slate-950/80 backdrop-blur-2xl border border-slate-800/80 rounded-2xl py-2.5 px-6 z-50 flex items-center justify-around shadow-[0_15px_40px_-5px_rgba(0,0,0,0.8)] lg:hidden">
+          {/* Internal gradient sheen */}
+          <div className="absolute inset-0 bg-gradient-to-tr from-emerald-500/5 to-cyan-500/5 rounded-2xl pointer-events-none" />
+          
+          <button 
+            onClick={() => navigate("/dashboard")}
+            className={`flex flex-col items-center gap-1 transition-all relative z-10 ${activeTab === 'home' ? 'text-emerald-400 scale-105' : 'text-slate-500 hover:text-slate-300'}`}
+          >
+            <Home className="w-5 h-5" />
+            <span className="text-[9px] font-black uppercase tracking-wider">Home</span>
+          </button>
+
+          <button 
+            onClick={() => navigate("/level")}
+            className={`flex flex-col items-center gap-1 transition-all relative z-10 ${activeTab === 'levels' ? 'text-cyan-400 scale-105' : 'text-slate-500 hover:text-slate-300'}`}
+          >
+            <Layers className="w-5 h-5" />
+            <span className="text-[9px] font-black uppercase tracking-wider">Levels</span>
+          </button>
+
+          {/* Floating AI Core Trigger Node with Glowing Border Ring */}
+          <button className="relative -mt-9 p-4 bg-gradient-to-tr from-emerald-400 to-cyan-500 rounded-full text-slate-950 shadow-xl shadow-emerald-500/30 cursor-pointer transform hover:scale-110 transition-transform active:scale-95 group z-20"
+          onClick={()=> navigate("/assistant")}>
+            <div className="absolute -inset-1 bg-gradient-to-r from-emerald-400 to-cyan-400 rounded-full blur opacity-60 group-hover:opacity-100 transition duration-300" />
+            <Bot className="w-6 h-6 relative z-10 text-slate-950" />
+          </button>
+
+          <button 
+            onClick={() => navigate('/premium')}
+            className={`flex flex-col items-center gap-1 transition-all relative z-10 ${activeTab === 'premium' ? 'text-amber-400 scale-105' : 'text-slate-500 hover:text-slate-300'}`}
+          >
+            <Crown className="w-5 h-5" />
+            <span className="text-[9px] font-black uppercase tracking-wider">Premium</span>
+          </button>
+
+          <button 
+            onClick={() => navigate("/profile")}
+            className={`flex flex-col items-center gap-1 transition-all relative z-10 ${activeTab === 'profile' ? 'text-emerald-400 scale-105' : 'text-slate-500 hover:text-slate-300'}`}
+          >
+            <User className="w-5 h-5" />
+            <span className="text-[9px] font-black uppercase tracking-wider">Profile</span>
+          </button>
+
+      </nav>
+
+    </div>
+  );
 }
