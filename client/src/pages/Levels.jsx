@@ -6,19 +6,20 @@ import {
   Award, Trophy, Star, Flame, Zap, Home, Layers, Crown, User, Bot, Compass, ChevronRight
 } from 'lucide-react';
 
-const generate50Levels = () => {
-  return Array.from({ length: 50 }, (_, i) => {
+// Generate 40 levels instead of 50
+const generate40Levels = () => {
+  return Array.from({ length: 40 }, (_, i) => {
     const levelNum = i + 1;
     return {
       level: levelNum,
       title: `Stage ${levelNum}`,
-      wordsCount: 5 + (levelNum % 3),
+      wordsCount: 10,
       stars: Math.min(3, Math.floor(Math.random() * 2) + 2)
     };
   });
 };
 
-const LEVELS_DATA = generate50Levels();
+const LEVELS_DATA = generate40Levels();
 
 export default function VocabularyLevels() {
   const navigate = useNavigate();
@@ -41,19 +42,15 @@ export default function VocabularyLevels() {
       return;
     }
 
-    navigate('/room', { 
-      state: { 
-        level: levelNum,
-        wordsCount: LEVELS_DATA[levelNum - 1].wordsCount
-      } 
-    });
+    // Navigates directly to the practice room for the chosen level
+    navigate(`/room/${levelNum}`);
   };
 
-  const progressPercentage = Math.min(100, Math.round((completedLevelCount / 50) * 100));
+  const progressPercentage = Math.min(100, Math.round((completedLevelCount / 40) * 100));
 
   return (
     <div className="min-h-screen bg-[#060b17] text-slate-200 font-sans antialiased pb-32 lg:pb-16 relative overflow-x-hidden selection:bg-[#dcb472]/30 selection:text-[#e2cb9f]">
-      
+
       {/* 🌌 Atmospheric Glow Orbs & Grid Layer */}
       <div className="fixed -top-24 right-1/4 w-[600px] h-[600px] bg-[#dcb472]/10 rounded-full blur-[160px] pointer-events-none z-0" />
       <div className="fixed top-1/2 left-[-100px] w-[500px] h-[500px] bg-indigo-600/10 rounded-full blur-[160px] pointer-events-none z-0" />
@@ -72,26 +69,22 @@ export default function VocabularyLevels() {
           </motion.button>
 
           <div className="flex items-center gap-3">
-        
-          
           </div>
         </div>
       </header>
 
       {/* Main Content Workspace */}
       <main className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-5 pt-5 relative z-10 space-y-5">
-        
+
         {/* Banner Hero Section */}
         <section className="relative bg-gradient-to-r from-[#0b1833] via-[#0f2249] to-[#0b1833] border border-[#1c3465] rounded-3xl p-6 sm:p-8 shadow-2xl overflow-hidden">
           <div className="absolute top-0 right-0 w-80 h-80 bg-gradient-to-bl from-[#dcb472]/10 via-transparent to-transparent pointer-events-none" />
 
           <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 relative z-10">
             <div className="space-y-2">
-           
               <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
                 Vocabulary Quest
               </h1>
-            
             </div>
 
             {/* Quick Stats Grid & Progress Bar */}
@@ -102,11 +95,9 @@ export default function VocabularyLevels() {
                 </div>
                 <div>
                   <span className="text-[10px] font-bold text-slate-500 uppercase block tracking-wider">Unlocked Stage</span>
-                  <span className="text-sm font-black text-white">{completedLevelCount + 1} / 50</span>
+                  <span className="text-sm font-black text-white">{completedLevelCount + 1} / 40</span>
                 </div>
               </div>
-
-           
             </div>
           </div>
         </section>
@@ -128,7 +119,7 @@ export default function VocabularyLevels() {
           )}
         </AnimatePresence>
 
-        {/* 📱 Full-width on mobile (grid-cols-1), responsive multi-column grid on desktop */}
+        {/* 📱 Responsive Grid Layout */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5 pb-24">
           {LEVELS_DATA.map((item) => {
             const isCompleted = item.level <= completedLevelCount;
@@ -230,7 +221,7 @@ export default function VocabularyLevels() {
         </div>
       </main>
 
-      {/* 📱 FIXED BOTTOM APP NAVIGATION BAR (Untouched) */}
+      {/* 📱 FIXED BOTTOM APP NAVIGATION BAR */}
       <nav className="fixed bottom-0 inset-x-0 bg-[#061024]/95 backdrop-blur-2xl border-t border-[#16274a] py-3.5 px-6 z-50 flex items-center justify-around lg:hidden">
         <button 
           onClick={() => navigate('/')}

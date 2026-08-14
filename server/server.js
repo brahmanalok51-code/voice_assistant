@@ -4,6 +4,8 @@ import ollama from 'ollama';
 import PDFDocument from 'pdfkit';
 import mongoose from 'mongoose';
 import axios from 'axios';
+import path from 'path';
+import fs from 'fs';
 import Assessment from './models/Assessment.js'; // Ensure your model schema matches the field inputs below
 import authRoutes from './routes/authRoutes.js';
 
@@ -301,147 +303,45 @@ app.delete('/api/history/:id', async (req, res) => {
 
 // ============================== levels code ===============================================
 
-// 🌟 ADDED HELPER FUNCTION FOR HINDI TRANSLATION
-const translateToHindi = async (text) => {
-  if (!text || text.trim().length === 0) return text;
-  try {
-    const res = await axios.get(`https://api.mymemory.translated.net/get`, {
-      params: { q: text, langpair: 'en|hi' },
-      timeout: 4000
-    });
-    return res.data.responseData.translatedText || text;
-  } catch (err) {
-    console.error(`Hindi Translation Error for "${text}":`, err.message);
-    return text;
-  }
+const DATA_FILE_PATH = path.join(process.cwd(), 'data', 'words.json');
+
+// Helper function to read data safely
+const getVocabularyData = () => {
+  const rawData = fs.readFileSync(DATA_FILE_PATH, 'utf-8');
+  return JSON.parse(rawData);
 };
 
-const fetchWordsByLevel = async (levelNum = 1) => {
-  try {
-    // Basic difficulty keywords based on Level Number
-    const levelTopics = {
-      1: "easy",
-      2: "action",
-      3: "opinion",
-      4: "business",
-      5: "academic"
-    };
-
-    const topic = levelTopics[levelNum] || "general";
-    
-    // Datamuse API call
-    const response = await axios.get(`https://api.datamuse.com/words`, {
-      params: {
-        ml: topic,   // Means Like (topic/context)
-        max: 40,     // 🌟 CHANGE 1: Pool size 20 se badha kar 40 kiya taaki 10 unique words aaram se mil sakein
-        md: 'f'      // Include frequency metadata
-      },
-      timeout: 4000
-    });
-
-    if (!response.data || response.data.length === 0) {
-      throw new Error("No words returned from Datamuse");
-    }
-
-    // Only clean single words
-    const sortedWords = response.data
-      .filter(item => item.word.length > 3 && !item.word.includes(' ')) 
-      .map(item => item.word);
-
-    // 🌟 CHANGE 2: .slice() ranges ko 5 se badha kar 10-10 ke gap par set kiya
-    let selectedWords = [];
-    if (levelNum === 1) {
-      selectedWords = sortedWords.slice(0, 10); // Take top 10 common words
-    } else if (levelNum === 2) {
-      selectedWords = sortedWords.slice(5, 15); // Shift and take 10 words
-    } else if (levelNum === 3) {
-      selectedWords = sortedWords.slice(10, 20);
-    } else if (levelNum === 4) {
-      selectedWords = sortedWords.slice(15, 25);
-    } else {
-      selectedWords = sortedWords.slice(20, 30); // Advanced rare 10 words
-    }
-
-    // Check if we have at least 10 words, else fallback to top 10 from sorted list
-    return selectedWords.length >= 10 ? selectedWords.slice(0, 10) : sortedWords.slice(0, 10);
-
-  } catch (error) {
-    console.error("Datamuse API Fetch Error, using fallback words:", error.message);
-    // 🌟 CHANGE 3: Fallback arrays me bhi 10 words pure kar diye (in case API down ho)
-    const fallbacks = {
-      1: ["happy", "bright", "simple", "clean", "quick", "smile", "friend", "learn", "speak", "laugh"],
-      2: ["appreciate", "consistent", "encourage", "generous", "improve", "practice", "routine", "effort", "honest", "stable"],
-      3: ["frequent", "reluctant", "persuade", "cautious", "accurate", "observe", "neglect", "imagine", "various", "wonder"],
-      4: ["elaborate", "inevitable", "substantial", "advocate", "prevalent", "strategy", "revenue", "analyze", "execute", "manage"],
-      5: ["meticulous", "resilient", "pragmatic", "versatile", "scrutinize", "paradox", "ambiguous", "cognitive", "eloquent", "advocate"]
-    };
-    return fallbacks[levelNum] || fallbacks[1];
-  }
-};
 // =================================================================
-// ROUTE 7:  Get Dynamic Level Data with Dictionary & Translation
+// ROUTE: Get Static/Curated Level Data from JSON File by Level ID
 // =================================================================
-
-app.get('/api/vocabulary/dynamic-level/:levelNum', async (req, res) => {
-  const levelNum = parseInt(req.params.levelNum, 10) || 1;
+app.get('/api/vocabulary/level/:levelId', async (req, res) => {
+  const { levelId } = req.params;
 
   try {
-    // 🌟 1. DYNAMICALLY FETCH WORDS BASED ON LEVEL (NO STATIC OBJECT)
-    const wordsList = await fetchWordsByLevel(levelNum);
+    const allData = getVocabularyData();
 
-    const fetchedWordsPromises = wordsList.map(async (wordStr) => {
-      let phoneticText = wordStr;
-      let rawExamples = [];
+    // Check if the requested level key exists (e.g., "1", "21", "22")
+    const words = allData[levelId.toString()];
 
-      // 🌟 2. Fetch Dictionary Details & Example Sentences
-      try {
-        const dictRes = await axios.get(`https://api.dictionaryapi.dev/api/v2/entries/en/${wordStr}`, { timeout: 3000 });
-        const entry = dictRes.data[0];
-        phoneticText = entry.phonetic || (entry.phonetics && entry.phonetics[0] ? entry.phonetics[0].text : wordStr);
+    if (!words || !Array.isArray(words) || words.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: `No vocabulary list found for Level ${levelId}`
+      });
+    }
 
-        entry.meanings.forEach(meaning => {
-          meaning.definitions.forEach(def => {
-            if (def.example) rawExamples.push(def.example);
-          });
-        });
-      } catch (dictErr) {
-        console.warn(`Free Dictionary API skipped for "${wordStr}"`);
-      }
-
-      // Fallback sentences if dictionary doesn't have examples
-      if (rawExamples.length === 0) {
-        rawExamples = [
-          `I always try to use the word ${wordStr} in my daily conversation.`,
-          `Learning how to use ${wordStr} correctly will improve your speaking skills.`
-        ];
-      }
-      const selectedExamples = rawExamples.slice(0, 2);
-
-      // 🌟 3. Translate Word & Sentences to Hindi
-      const [hindiMeaning, formattedSentences] = await Promise.all([
-        translateToHindi(wordStr),
-        Promise.all(
-          selectedExamples.map(async (sentenceEn) => {
-            const sentenceHi = await translateToHindi(sentenceEn);
-            return { english: sentenceEn, hindi: sentenceHi };
-          })
-        )
-      ]);
-
-      return {
-        word: wordStr,
-        pronunciation: phoneticText,
-        hindiMeaning: hindiMeaning,
-        sentences: formattedSentences
-      };
+    return res.json({
+      success: true,
+      levelNumber: parseInt(levelId, 10),
+      totalWords: words.length,
+      words: words
     });
-
-    const finalLevelWords = await Promise.all(fetchedWordsPromises);
-    res.json({ success: true, levelNumber: levelNum, words: finalLevelWords });
-
   } catch (error) {
-    console.error("Dynamic Vocabulary Route Error:", error.message);
-    res.status(500).json({ success: false, error: "Failed to fetch dynamic level words." });
+    console.error(`Error reading level ${levelId} from JSON:`, error.message);
+    return res.status(500).json({
+      success: false,
+      error: "Internal server error while fetching level data."
+    });
   }
 });
 

@@ -15,7 +15,7 @@ function App() {
      <Routes>
       <Route path='/' element={<LandingPage/>}/>
       <Route path='/level' element={<Levels/>}/>
-      <Route path='/room' element={<VocabPracticeRoom/>}/>
+      <Route path='/room/:levelId' element={<VocabPracticeRoom/>}/>
       <Route path="/dashboard" element={<Dashboard/>}/>
       <Route path='/history' element={<History/>}/>
       <Route path='/register' element={<Register/>}/>
