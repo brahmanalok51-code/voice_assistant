@@ -42,33 +42,32 @@ const parseModelJson = (rawContent) => {
   }
 };
 
-// 🤖 REUSABLE HUGGING FACE PHI-3.5 API HELPER
-const callHuggingFacePhi3 = async (prompt) => {
-  const HF_API_URL = 'https://api-inference.huggingface.co/models/microsoft/Phi-3.5-mini-instruct';
-  
+// 🤖 UPDATED HUGGING FACE PHI-3.5 INFERENCE ROUTER
+const callHuggingFacePhi3 = async (messagesArray) => {
+  const HF_ROUTER_URL = 'https://router.huggingface.co/hf-inference/v1/chat/completions';
+
+  if (!process.env.HF_API_KEY) {
+    throw new Error("HF_API_KEY is not defined in environment variables");
+  }
+
   const response = await axios.post(
-    HF_API_URL,
+    HF_ROUTER_URL,
     {
-      inputs: prompt,
-      parameters: {
-        max_new_tokens: 350,
-        temperature: 0.3,
-        return_full_text: false
-      }
+      model: 'microsoft/Phi-3.5-mini-instruct',
+      messages: messagesArray,
+      max_tokens: 300,
+      temperature: 0.4
     },
     {
       headers: {
-        Authorization: `Bearer ${process.env.HF_API_KEY}`,
+        Authorization: `Bearer ${process.env.HF_API_KEY.trim()}`,
         'Content-Type': 'application/json',
       },
-      timeout: 30000 // 30s timeout
+      timeout: 45000
     }
   );
 
-  if (Array.isArray(response.data) && response.data[0]?.generated_text) {
-    return response.data[0].generated_text;
-  }
-  return typeof response.data === 'string' ? response.data : JSON.stringify(response.data);
+  return response.data?.choices?.[0]?.message?.content || "";
 };
 
 // =========================================================================
@@ -102,23 +101,22 @@ app.post('/api/chat', async (req, res) => {
     return res.status(400).json({ error: "User message is required." });
   }
 
-  const systemPrompt = `<|system|>
-You are Aura, an exceptionally friendly and intelligent English Language Tutor.
+  const systemInstructions = `You are Aura, an exceptionally friendly and intelligent English Language Tutor.
 Engage in an interactive conversation with the user to help them practice English.
 Respond STRICTLY with a valid JSON object matching this exact structure:
 {
   "reply": "Your natural reply combined with the next interesting practice question here"
-}
-<|end|>
-<|user|>
-"${userMessage}"
-<|end|>
-<|assistant|>`;
+}`;
+
+  const messages = [
+    { role: "system", content: systemInstructions },
+    { role: "user", content: userMessage }
+  ];
 
   try {
-    const modelOutput = await callHuggingFacePhi3(systemPrompt);
-    const parsed = parseModelJson(modelOutput);
-    const finalReply = parsed.reply || "That is very interesting! Could you tell me more about it?";
+    const rawContent = await callHuggingFacePhi3(messages);
+    const parsed = parseModelJson(rawContent);
+    const finalReply = parsed.reply || rawContent || "That is very interesting! Could you tell me more about it?";
 
     res.json({
       success: true,

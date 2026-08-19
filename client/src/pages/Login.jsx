@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Mail, Lock, Eye, EyeOff, ArrowRight, Sparkles, CheckCircle2, AlertCircle, Cpu, Check, X } from 'lucide-react';
 import { useNavigate } from 'react-router';
+const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 export default function Login() {
   // Form State
@@ -47,7 +48,7 @@ export default function Login() {
 
     try {
       // 🌐 Connect to Backend API
-      const response = await fetch('http://localhost:5000/api/auth/login', {
+      const response = await fetch(`${apiUrl}/api/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

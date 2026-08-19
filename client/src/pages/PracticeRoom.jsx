@@ -6,7 +6,7 @@ import {
   Sparkles, BookOpen, Languages 
 } from 'lucide-react';
 import axios from 'axios';
-
+const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 export default function VocabPracticeRoom() {
   const { levelId } = useParams();
   const navigate = useNavigate();
@@ -31,7 +31,7 @@ export default function VocabPracticeRoom() {
     setSpokenSentences({});
     setActiveMicIndex(null);
 
-    axios.get(`http://localhost:5000/api/vocabulary/level/${currentLevelId}`)
+    axios.get(`${apiUrl}/api/vocabulary/level/${currentLevelId}`)
       .then(res => {
         if (res.data && res.data.success && Array.isArray(res.data.words)) {
           setLevelWords(res.data.words);

@@ -6,6 +6,7 @@ import {
   Flame, Award, BookOpen, Save, KeyRound, Check, X, ArrowLeft, LogOut
 } from 'lucide-react';
 import { useNavigate } from 'react-router';
+const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 export default function ProfilePage() {
   const navigate = useNavigate();
@@ -61,7 +62,7 @@ export default function ProfilePage() {
           return;
         }
 
-        const response = await fetch('http://localhost:5000/api/user/profile', {
+        const response = await fetch(`${apiUrl}/api/user/profile`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -110,7 +111,7 @@ export default function ProfilePage() {
 
       try {
         const token = localStorage.getItem('token');
-        const response = await fetch('http://localhost:5000/api/user/update-profile', {
+        const response = await fetch(`${apiUrl}/api/user/update-profile`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -139,7 +140,7 @@ export default function ProfilePage() {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/user/update-profile', {
+      const response = await fetch(`${apiUrl}/api/user/update-profile`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -185,7 +186,7 @@ export default function ProfilePage() {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/user/change-password', {
+      const response = await fetch(`${apiUrl}/api/user/change-password`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
