@@ -39,9 +39,7 @@ export default function Dashboard() {
           
           {/* Logo Signature */}
           <div className="flex items-center gap-2.5 cursor-pointer">
-            <div className="p-2 bg-gradient-to-br from-emerald-400 to-cyan-500 rounded-xl shadow-[0_0_15px_rgba(52,211,153,0.3)]">
-              <Sparkles className="w-4 h-4 text-slate-950 animate-pulse" />
-            </div>
+          
             <span className="text-base font-black tracking-widest text-white uppercase">Lingo<span className="text-cyan-400">AI</span></span>
           </div>
 

@@ -114,9 +114,7 @@ export default function Register() {
         animate={{ opacity: 1, x: 0 }}
         className="absolute top-6 left-6 z-50 flex items-center gap-2 cursor-pointer"
       >
-        <div className="p-2 bg-gradient-to-br from-emerald-400 to-cyan-500 rounded-xl">
-          <Sparkles className="w-4 h-4 text-slate-950" />
-        </div>
+       
         <span className="text-sm font-black tracking-widest text-white uppercase">Lingo<span className="text-cyan-400">AI</span></span>
       </motion.div>
 

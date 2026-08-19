@@ -56,16 +56,14 @@ export default function LandingPage() {
         transition={{ duration: 0.6, type: "spring" }}
         className="absolute top-6 left-4 sm:left-8 z-50 flex items-center gap-2 cursor-pointer group"
       >
-        <div className="p-2.5 bg-gradient-to-br from-emerald-400 to-cyan-500 rounded-xl shadow-lg shadow-emerald-500/20 group-hover:rotate-12 transition-transform duration-300">
-          <Sparkles className="w-5 h-5 text-slate-950" />
-        </div>
+        
         <span className="text-lg font-black tracking-wider bg-gradient-to-r from-white via-slate-200 to-emerald-400 bg-clip-text text-transparent uppercase">
           Lingo<span className="text-cyan-400">AI</span>
         </span>
       </motion.div>
 
       {/* 🚀 HERO PRESENTATION SUITE */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-32 pb-20 relative z-10">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-32 mb-5 relative z-10">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 items-center">
           
           {/* Left Block: High-Impact Typography & Interactive CTA */}
@@ -168,7 +166,7 @@ export default function LandingPage() {
       </main>
 
       {/* 🧭 GAMIFIED PIPELINE MATRIX */}
-      <section className="bg-[#05080f] border-y border-slate-900 py-20 relative overflow-hidden">
+      <section className="bg-[#05080f] border-y border-slate-900 py-15 relative overflow-hidden">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 sm:gap-10">
@@ -234,7 +232,7 @@ export default function LandingPage() {
       </section>
 
       {/* 📚 IMMERSIVE VOCABULARY LABORATORY */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 relative z-10">
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 relative z-10">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 items-center">
           
           <motion.div 
@@ -301,8 +299,8 @@ export default function LandingPage() {
       </section>
 
       {/* 🗣️ DIALOGUE CALIBRATION CONSOLE */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 relative z-10 border-t border-slate-900">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 items-center">
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 relative z-10 border-t border-slate-900">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
           
           {/* Conversational Terminal Interface */}
           <motion.div 

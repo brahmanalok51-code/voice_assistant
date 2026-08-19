@@ -2,8 +2,9 @@
   "name": "server",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "server.js",
   "scripts": {
+    "start": "node server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -19,7 +20,6 @@
     "jsonwebtoken": "^9.0.3",
     "languagetool-api": "^1.1.2",
     "mongoose": "^9.7.4",
-    "ollama": "^0.6.3",
     "pdfkit": "^0.19.1"
   }
 }

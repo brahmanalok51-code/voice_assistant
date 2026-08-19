@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   User, Mail, Phone, Lock, Eye, EyeOff, Camera, 
   Sparkles, CheckCircle2, AlertCircle, ShieldCheck, 
-  Flame, Award, BookOpen, Save, KeyRound, Check, X, ArrowLeft
+  Flame, Award, BookOpen, Save, KeyRound, Check, X, ArrowLeft, LogOut
 } from 'lucide-react';
 import { useNavigate } from 'react-router';
 
@@ -13,6 +13,12 @@ export default function ProfilePage() {
 
   // Active Tab: 'details' | 'security'
   const [activeTab, setActiveTab] = useState('details');
+
+  // logout method...
+  const handleLogout = () => {
+    localStorage.removeItem('token'); 
+    navigate('/');
+  };
 
   // Profile Form State
   const [profileData, setProfileData] = useState({
@@ -325,7 +331,17 @@ export default function ProfilePage() {
                 >
                   Security
                 </button>
+             
               </div>
+                 <motion.button
+      whileHover={{ scale: 1.01 }}
+      whileTap={{ scale: 0.98 }}
+      onClick={handleLogout}
+      className="w-full h-8 sm:h-10 mt-1 bg-rose-500/10 hover:bg-rose-500/20 active:bg-rose-500/30 text-rose-400 hover:text-rose-300 border border-rose-500/30 hover:border-rose-500/50 rounded-xl text-xs sm:text-sm font-bold tracking-wide flex items-center justify-center gap-2 shadow-lg shadow-rose-500/5 transition-all duration-200 cursor-pointer"
+    >
+      <LogOut className="w-4 h-4 text-rose-400" />
+      <span>Log Out</span>
+    </motion.button>
             </div>
 
             {/* Gamification Stats Overview */}

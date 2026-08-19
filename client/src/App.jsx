@@ -10,6 +10,8 @@ import Dashboard from "./pages/Dashboard"
 import LoginPage from './pages/Login'
 import Premium from './pages/Premium'
 import Profile from  "./pages/Profile"
+import ProtectedRoute from './components/ProtectedRoute'
+
 
 
 function App() {
@@ -17,15 +19,18 @@ function App() {
     <div>
      <Routes>
       <Route path='/' element={<LandingPage/>}/>
+       <Route path='/register' element={<Register/>}/>
+      <Route path='/login' element={<LoginPage/>}/>
+      <Route element={<ProtectedRoute/>}>
       <Route path='/level' element={<Levels/>}/>
       <Route path='/room/:levelId' element={<VocabPracticeRoom/>}/>
       <Route path="/assistant" element={<Assistant/>}/>
       <Route path='/history' element={<History/>}/>
-      <Route path='/register' element={<Register/>}/>
-      <Route path='/login' element={<LoginPage/>}/>
       <Route path='/dashboard' element={<Dashboard/>}/>
       <Route path='/premium' element={<Premium/>}/>
       <Route path='/profile' element={<Profile/>}/>
+      </Route>
+       
      </Routes>
     </div>
   )
