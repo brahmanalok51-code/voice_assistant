@@ -50,7 +50,8 @@ const callAI = async (messagesArray) => {
   const response = await axios.post(
     'https://api.groq.com/openai/v1/chat/completions',
     {
-      model: 'llama-3.1-8b-instant',
+      // 👈 Model name ko update karein:
+      model: 'llama-3.3-70b-versatile', 
       messages: messagesArray,
       temperature: 0.3,
       max_tokens: 350,
