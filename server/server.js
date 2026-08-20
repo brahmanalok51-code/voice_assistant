@@ -41,34 +41,54 @@ const parseModelJson = (rawContent) => {
   }
 };
 
-// 🤖 PRODUCTION-READY GROQ CLOUD INFERENCE ENGINE
 const callAI = async (messagesArray) => {
   if (!process.env.GROQ_API_KEY) {
     throw new Error("GROQ_API_KEY is missing in environment variables");
   }
 
-  const response = await axios.post(
-    'https://api.groq.com/openai/v1/chat/completions',
-    {
-     
-      model: 'llama3-8b-8192', 
-      messages: messagesArray,
-      temperature: 0.3,
-      max_tokens: 350,
-      response_format: { type: "json_object" }
-    },
-    {
-      headers: {
-        Authorization: `Bearer ${process.env.GROQ_API_KEY.trim()}`,
-        'Content-Type': 'application/json'
-      },
-      timeout: 25000
+  // Aapke account ke verified active models (Priority order)
+  const modelsToTry = [
+    'openai/gpt-oss-20b',
+    'groq/compound-mini',
+    'groq/compound'
+  ];
+
+  let lastError = null;
+
+  for (const modelName of modelsToTry) {
+    try {
+      const response = await axios.post(
+        'https://api.groq.com/openai/v1/chat/completions',
+        {
+          model: modelName,
+          messages: messagesArray,
+          temperature: 0.3,
+          max_tokens: 350,
+          response_format: { type: "json_object" }
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${process.env.GROQ_API_KEY.trim()}`,
+            'Content-Type': 'application/json'
+          },
+          timeout: 20000
+        }
+      );
+
+      // Agar success hua toh turant return
+      if (response.data?.choices?.[0]?.message?.content) {
+        return response.data.choices[0].message.content;
+      }
+    } catch (err) {
+      console.warn(`⚠️ Model ${modelName} failed. Reason: ${err.response?.data?.error?.message || err.message}`);
+      lastError = err;
+      // Loop agle model par switch karega
     }
-  );
+  }
 
-  return response.data?.choices?.[0]?.message?.content || "{}";
+  // Agar teeno fail ho gaye tabhi error fekega
+  throw lastError || new Error("All verified models failed to respond.");
 };
-
 // =========================================================================
 // 🚀 SESSION INITIALIZATION
 // =========================================================================
