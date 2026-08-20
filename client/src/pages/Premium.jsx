@@ -2,43 +2,51 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Sparkles, Check, ArrowRight, Zap, ShieldCheck, 
-  Crown, Flame, Clock, Gift, ArrowLeft, Star, HelpCircle
+  Crown, Flame, Clock, Gift, ArrowLeft, Star, HelpCircle, X, QrCode, Copy, CheckCircle2
 } from 'lucide-react';
 import { useNavigate } from 'react-router';
+import { QRCodeSVG } from 'qrcode.react';
 
 export default function PricingPage() {
   const navigate = useNavigate();
-  const [selectedPlan, setSelectedPlan] = useState('monthly'); // 'weekly' | 'monthly' | 'yearly'
-  const [loadingPlan, setLoadingPlan] = useState(null);
+  const [selectedModalPlan, setSelectedModalPlan] = useState(null); // Modal state
+  const [utrNumber, setUtrNumber] = useState('');
+  const [copied, setCopied] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState('');
+
+  // 🔴 APNA ACTUAL UPI ID AUR NAME YAHAN UPDATE KAREIN:
+  const UPI_ID = "9142316341@ibl"; 
+  const PAYEE_NAME = "LingoAI English Tutor";
 
   const plans = [
     {
-      id: 'weekly',
-      name: '7-Day Sprint',
+      id: 'daily',
+      name: '1-Day Sprint',
       badge: 'Short-Term Trial',
-      price: 50,
-      originalPrice: 99,
-      discount: '50% OFF',
-      duration: 'per week',
-      description: 'Perfect for quick exam preparation and short-term fluency sprints.',
+      price: 1,
+      originalPrice: 20,
+      discount: '75% OFF',
+      duration: 'for 24 hours',
+      description: 'Perfect for quick testing, instant speech evaluation, and 1-day speaking boost.',
       icon: Clock,
       glowColor: 'from-cyan-500/20 to-blue-500/10',
       borderColor: 'border-slate-800 hover:border-cyan-500/40',
       accentColor: 'text-cyan-400',
       buttonStyle: 'bg-slate-900 hover:bg-slate-800 text-white border border-slate-700',
       features: [
-        'Full access to all Vocabulary Levels',
+        'Full 24-hour access to AI Tutor',
         'Instant pronunciation feedback & scoring',
-        'Daily practice limit: 30 minutes/day',
-        'Standard voice audio synthesis'
+        'Unlimited AI Live Voice practice',
+        'Devanagari phonetics engine'
       ]
     },
     {
       id: 'monthly',
       name: 'Pro Fluency',
       badge: '🔥 Most Popular',
-      price: 200,
-      originalPrice: 400,
+      price: 199,
+      originalPrice: 399,
       discount: 'SAVE 50%',
       duration: 'per month',
       popular: true,
@@ -80,17 +88,39 @@ export default function PricingPage() {
     }
   ];
 
-  const handleSubscribe = async (planId) => {
-    setLoadingPlan(planId);
-    try {
-      // Simulate backend payment order creation (Razorpay / Stripe)
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      alert(`Initiating checkout for plan: ${planId.toUpperCase()}`);
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setLoadingPlan(null);
+  const handleOpenQRModal = (plan) => {
+    setSelectedModalPlan(plan);
+    setUtrNumber('');
+    setSubmitStatus('');
+  };
+
+  const handleCopyUPI = () => {
+    navigator.clipboard.writeText(UPI_ID);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleVerifySubmission = async (e) => {
+    e.preventDefault();
+    if (utrNumber.trim().length < 12) {
+      setSubmitStatus('Kripya 12-digit valid UTR/Ref number dalein.');
+      return;
     }
+    setSubmitting(true);
+    try {
+      // Backend API submission simulated
+      await new Promise((resolve) => setTimeout(resolve, 1200));
+      setSubmitStatus('success');
+    } catch (err) {
+      setSubmitStatus('Failed to submit. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Dynamic UPI URL for QR Generation (Pre-filled amount & details)
+  const getUpiUrl = (amount, planName) => {
+    return `upi://pay?pa=${UPI_ID}&pn=${encodeURIComponent(PAYEE_NAME)}&am=${amount.toFixed(2)}&cu=INR&tn=LingoAI_${encodeURIComponent(planName)}`;
   };
 
   return (
@@ -114,7 +144,6 @@ export default function PricingPage() {
           </button>
 
           <div className="flex items-center gap-2">
-          
             <span className="text-sm font-black tracking-widest text-white uppercase">
               Premium
             </span>
@@ -131,7 +160,7 @@ export default function PricingPage() {
             className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gradient-to-r from-emerald-500/10 via-cyan-500/10 to-amber-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-bold shadow-lg shadow-emerald-500/5 backdrop-blur-md"
           >
             <Gift className="w-4 h-4 text-amber-400 animate-bounce" />
-            <span>Independence Month Special: Up to 60% Discount Applied!</span>
+            <span>Independence Month Special: Up to 75% Discount Applied!</span>
           </motion.div>
 
           <motion.h1 
@@ -227,18 +256,11 @@ export default function PricingPage() {
                 <div className="relative z-10">
                   <motion.button
                     whileTap={{ scale: 0.98 }}
-                    disabled={loadingPlan === plan.id}
-                    onClick={() => handleSubscribe(plan.id)}
-                    className={`w-full h-12 rounded-2xl text-xs sm:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50 ${plan.buttonStyle}`}
+                    onClick={() => handleOpenQRModal(plan)}
+                    className={`w-full h-12 rounded-2xl text-xs sm:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer ${plan.buttonStyle}`}
                   >
-                    {loadingPlan === plan.id ? (
-                      <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                    ) : (
-                      <>
-                        <span>Get Started Now</span>
-                        <ArrowRight className="w-4 h-4" />
-                      </>
-                    )}
+                    <span>Get Started Now</span>
+                    <ArrowRight className="w-4 h-4" />
                   </motion.button>
                 </div>
 
@@ -259,18 +281,125 @@ export default function PricingPage() {
               <ShieldCheck className="w-5 h-5" />
             </div>
             <div>
-              <h4 className="text-xs font-bold text-white">Safe & Encrypted Transactions</h4>
-              <p className="text-[11px] text-slate-500">Supports UPI, Net Banking, Credit/Debit Cards, and Wallets.</p>
+              <h4 className="text-xs font-bold text-white">Direct & 100% Safe UPI Gateway</h4>
+              <p className="text-[11px] text-slate-500">Scan via PhonePe, Google Pay, Paytm or any BHIM UPI App.</p>
             </div>
           </div>
 
           <div className="flex items-center gap-6 text-xs text-slate-400 font-semibold">
-            <span className="flex items-center gap-1.5"><Star className="w-3.5 h-3.5 text-amber-400" /> Cancel Anytime</span>
+            <span className="flex items-center gap-1.5"><Star className="w-3.5 h-3.5 text-amber-400" /> Auto-Filled Price</span>
             <span className="flex items-center gap-1.5"><Zap className="w-3.5 h-3.5 text-cyan-400" /> Instant Activation</span>
           </div>
         </motion.div>
 
       </div>
+
+      {/* =========================================================================
+          🔥 DYNAMIC UPI QR MODAL (AUTO-FILLS EXACT AMOUNT ON SCAN)
+         ========================================================================= */}
+      <AnimatePresence>
+        {selectedModalPlan && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl overflow-hidden"
+            >
+              {/* Close Button */}
+              <button 
+                onClick={() => setSelectedModalPlan(null)}
+                className="absolute top-4 right-4 p-2 rounded-full bg-slate-800/60 text-slate-400 hover:text-white hover:bg-slate-800 transition-all cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              {/* Header */}
+              <div className="text-center space-y-1">
+                <span className="text-[10px] font-black uppercase tracking-widest text-emerald-400">
+                  Scan & Pay via any UPI App
+                </span>
+                <h3 className="text-xl font-black text-white">{selectedModalPlan.name}</h3>
+                <p className="text-xs text-slate-400">Amount auto-locks on scan: <span className="text-emerald-400 font-bold text-sm">₹{selectedModalPlan.price}</span></p>
+              </div>
+
+              {/* QR Code Container */}
+              <div className="my-6 flex flex-col items-center justify-center">
+                <div className="p-4 bg-white rounded-2xl shadow-xl shadow-emerald-500/10 border-4 border-emerald-500/30">
+                  <QRCodeSVG 
+                    value={getUpiUrl(selectedModalPlan.price, selectedModalPlan.name)} 
+                    size={190}
+                    level="H"
+                    includeMargin={false}
+                  />
+                </div>
+              
+              </div>
+
+              {/* UPI ID Copy Bar */}
+              <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs mb-4">
+                <div className="flex items-center gap-2 text-slate-400 truncate">
+                  <QrCode className="w-4 h-4 text-slate-500 shrink-0" />
+                  <span className="truncate">{UPI_ID}</span>
+                </div>
+                <button 
+                  onClick={handleCopyUPI}
+                  className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-800 text-slate-200 hover:text-white font-bold text-[10px] transition-all cursor-pointer"
+                >
+                  {copied ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                  {copied ? "Copied" : "Copy UPI"}
+                </button>
+              </div>
+
+              {/* UTR Verification Section */}
+              {submitStatus === 'success' ? (
+                <div className="p-4 rounded-xl bg-emerald-950/60 border border-emerald-500/40 text-center space-y-2">
+                  <CheckCircle2 className="w-8 h-8 text-emerald-400 mx-auto" />
+                  <h4 className="text-xs font-bold text-white">Payment Submitted Successfully!</h4>
+                  <p className="text-[11px] text-emerald-300">Aapka account verify ho raha hai. Premium access jald hi activate ho jayega.</p>
+                  <button 
+                    onClick={() => setSelectedModalPlan(null)}
+                    className="w-full py-2 bg-emerald-500 text-slate-950 text-xs font-bold rounded-xl mt-2 cursor-pointer"
+                  >
+                    Done & Return
+                  </button>
+                </div>
+              ) : (
+                <form onSubmit={handleVerifySubmission} className="space-y-3">
+                  <div>
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+                      Enter 12-Digit UTR / UPI Ref No. after Payment:
+                    </label>
+                    <input 
+                      type="text" 
+                      maxLength={12}
+                      placeholder="e.g. 423456789012"
+                      value={utrNumber}
+                      onChange={(e) => setUtrNumber(e.target.value.replace(/[^0-9]/g, ''))}
+                      className="w-full h-10 px-3 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs tracking-widest focus:outline-none focus:border-emerald-500"
+                      required
+                    />
+                  </div>
+
+                  {submitStatus && submitStatus !== 'success' && (
+                    <p className="text-[10px] text-rose-400 font-bold">{submitStatus}</p>
+                  )}
+
+                  <button 
+                    type="submit"
+                    disabled={submitting}
+                    className="w-full h-10 rounded-xl bg-gradient-to-r from-emerald-400 to-cyan-500 text-slate-950 font-black text-xs shadow-lg shadow-emerald-500/20 hover:scale-[1.01] transition-all cursor-pointer disabled:opacity-50"
+                  >
+                    {submitting ? "Verifying Details..." : "Confirm Payment"}
+                  </button>
+                </form>
+              )}
+
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
     </div>
   );
 }

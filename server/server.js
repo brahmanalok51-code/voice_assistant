@@ -43,31 +43,30 @@ const parseModelJson = (rawContent) => {
 };
 
 // 🤖 UPDATED HUGGING FACE PHI-3.5 INFERENCE ROUTER
-const callHuggingFacePhi3 = async (messagesArray) => {
-  const HF_ROUTER_URL = 'https://router.huggingface.co/hf-inference/v1/chat/completions';
-
-  if (!process.env.HF_API_KEY) {
-    throw new Error("HF_API_KEY is not defined in environment variables");
+const callAI = async (messagesArray) => {
+  if (!process.env.GROQ_API_KEY) {
+    throw new Error("GROQ_API_KEY is missing in environment variables");
   }
 
   const response = await axios.post(
-    HF_ROUTER_URL,
+    'https://api.groq.com/openai/v1/chat/completions',
     {
-      model: 'microsoft/Phi-3.5-mini-instruct',
+      model: 'llama-3.1-8b-instant', // Ultra-fast and accurate for language tutoring & grammar
       messages: messagesArray,
-      max_tokens: 300,
-      temperature: 0.4
+      temperature: 0.3,
+      max_tokens: 350,
+      response_format: { type: "json_object" } // Direct strict JSON guarantee
     },
     {
       headers: {
-        Authorization: `Bearer ${process.env.HF_API_KEY.trim()}`,
-        'Content-Type': 'application/json',
+        Authorization: `Bearer ${process.env.GROQ_API_KEY.trim()}`,
+        'Content-Type': 'application/json'
       },
-      timeout: 45000
+      timeout: 30000
     }
   );
 
-  return response.data?.choices?.[0]?.message?.content || "";
+  return response.data?.choices?.[0]?.message?.content || "{}";
 };
 
 // =========================================================================

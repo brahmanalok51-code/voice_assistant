@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { User, Mail, Lock, Phone, ArrowRight, Sparkles, Eye, EyeOff, CheckCircle2, AlertCircle, Cpu } from 'lucide-react';
 import { useNavigate } from 'react-router';
+const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 export default function Register() {
   // Form State
@@ -32,7 +33,7 @@ export default function Register() {
 
     try {
       // 🌐 Connect to Backend API
-      const response = await fetch('http://localhost:5000/api/auth/register', {
+      const response = await fetch(`${apiUrl}/api/auth/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
