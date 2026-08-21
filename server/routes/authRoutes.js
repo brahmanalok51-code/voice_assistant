@@ -9,7 +9,7 @@ const router = express.Router();
 // -----------------------------------------------------------------------------
 // CONTROLLER LOGIC: Handle User Registration
 // -----------------------------------------------------------------------------
-const registerUser = async (req, res) => {
+export const registerUser = async (req, res) => {
   try {
     const { name, email, password, phone } = req.body;
 
@@ -39,7 +39,6 @@ const registerUser = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, salt);
 
     // 4. Create and save the new user
-    // Note: Schema-level validation (Regex checks for email, password, phone) runs automatically on .create()
     const newUser = await User.create({
       name,
       email: email.toLowerCase(),
@@ -47,14 +46,14 @@ const registerUser = async (req, res) => {
       phone,
     });
 
-    // 5. Generate JWT Token
+    // 5. Generate JWT Token (Synced ID + Secret with login flow)
     const token = jwt.sign(
-      { userId: newUser._id },
-      process.env.JWT_SECRET || 'fallback_secret_key_change_in_prod',
+      { id: newUser._id, userId: newUser._id },
+      process.env.JWT_SECRET || 'secret_key',
       { expiresIn: '7d' }
     );
 
-    // 6. Return response (excluding hashed password)
+    // 6. Return response
     return res.status(201).json({
       success: true,
       message: 'Registration successful!',
@@ -68,7 +67,6 @@ const registerUser = async (req, res) => {
     });
 
   } catch (error) {
-    // Catch Mongoose Schema validation error messages (e.g., regex checks)
     if (error.name === 'ValidationError') {
       const messages = Object.values(error.errors).map((val) => val.message);
       return res.status(400).json({
@@ -172,7 +170,8 @@ export const updateUserProfile = async (req, res) => {
   }
 };
 
-// 3. Update / Change Password API
+
+// update password...
 export const updatePassword = async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
@@ -184,13 +183,12 @@ export const updatePassword = async (req, res) => {
       });
     }
 
-    // Find user with password field
-    const user = await User.findById(req.userId).select('+password');
+    const userId = req.userId || req.user?.id || req.user?._id;
+    const user = await User.findById(userId).select('+password');
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
-    // Verify current password
     const isMatch = await bcrypt.compare(currentPassword, user.password);
     if (!isMatch) {
       return res.status(400).json({
@@ -199,16 +197,17 @@ export const updatePassword = async (req, res) => {
       });
     }
 
-    // Set new password (pre-save hook will automatically hash it)
-    user.password = newPassword;
-    await user.save();
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
 
-    res.status(200).json({
+    await User.findByIdAndUpdate(userId, { password: hashedPassword });
+
+    return res.status(200).json({
       success: true,
       message: 'Password updated successfully!',
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    return res.status(500).json({ success: false, message: error.message });
   }
 };
 

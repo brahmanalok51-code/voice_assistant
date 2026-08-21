@@ -53,45 +53,45 @@ export default function ProfilePage() {
   const isPassMatch = passwordData.newPassword === passwordData.confirmPassword && passwordData.confirmPassword.length > 0;
 
   // 1. Fetch User Profile Data on Component Mount
-  useEffect(() => {
-    const fetchUserProfile = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        if (!token) {
-          navigate('/login');
-          return;
-        }
-
-        const response = await fetch(`${apiUrl}/api/user/profile`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          }
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-          throw new Error(data.message || 'Failed to fetch profile data');
-        }
-
-        if (data.user) {
-          setProfileData((prev) => ({
-            ...prev,
-            name: data.user.name || '',
-            email: data.user.email || '',
-            phone: data.user.phone || '',
-            avatarUrl: data.user.avatar || null
-          }));
-        }
-      } catch (err) {
-        setStatus({ type: 'error', message: err.message || 'Could not load profile details.' });
+useEffect(() => {
+  const fetchUserProfile = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        navigate('/login');
+        return;
       }
-    };
 
-    fetchUserProfile();
-  }, [navigate]);
+      const response = await fetch(`${apiUrl}/api/user/profile`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to fetch profile data');
+      }
+
+      if (data.user) {
+        setProfileData((prev) => ({
+          ...prev,
+          name: data.user.name || '',
+          email: data.user.email || '',
+          phone: data.user.phone || '',
+          avatarUrl: data.user.avatar || null
+        }));
+      }
+    } catch (err) {
+      setStatus({ type: 'error', message: err.message || 'Could not load profile details.' });
+    }
+  };
+
+  fetchUserProfile();
+}, [navigate]);
 
   // 2. Handle Avatar Upload & Auto Update in Database (Base64)
   const handleAvatarChange = (e) => {

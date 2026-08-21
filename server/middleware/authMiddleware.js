@@ -7,7 +7,13 @@ export const protect = async (req, res, next) => {
     if (token && token.startsWith('Bearer ')) {
       token = token.split(' ')[1];
       const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret_key');
-      req.userId = decoded.id;
+
+      req.userId = decoded.id || decoded.userId;
+
+      if (!req.userId) {
+        return res.status(401).json({ success: false, message: 'Invalid token structure' });
+      }
+
       return next();
     }
 

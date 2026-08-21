@@ -17,19 +17,56 @@ export default function Register() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState({ type: null, message: '' }); // 'success' | 'error'
-  const navigate = useNavigate()
+  const navigate = useNavigate();
 
-  // Input Handler
+  // 🎯 Real-time Password Rules Checker
+  const passwordCriteria = {
+    length: formData.password.length >= 6,
+    capital: /[A-Z]/.test(formData.password),
+    number: /[0-9]/.test(formData.password),
+    symbol: /[!@#$%^&*(),.?":{}|<>\-_=+]/.test(formData.password),
+  };
+
+  const isPasswordValid = Object.values(passwordCriteria).every(Boolean);
+
+  // Input Handler with Phone 10-digit limit
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+
+    if (name === 'phone') {
+      const sanitizedNumber = value.replace(/\D/g, ''); // Sirf digits allow karega
+      if (sanitizedNumber.length <= 10) {
+        setFormData((prev) => ({ ...prev, phone: sanitizedNumber }));
+      }
+      return;
+    }
+
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   // Frontend Submission Handler
- // Frontend Submission Handler
   const handleSignup = async (e) => {
     e.preventDefault();
-    setLoading(true);
     setStatus({ type: null, message: '' });
+
+    // Validation checks prior to request
+    if (formData.phone.length !== 10) {
+      setStatus({
+        type: 'error',
+        message: 'Phone number must be exactly 10 digits.',
+      });
+      return;
+    }
+
+    if (!isPasswordValid) {
+      setStatus({
+        type: 'error',
+        message: 'Please satisfy all password security requirements.',
+      });
+      return;
+    }
+
+    setLoading(true);
 
     try {
       // 🌐 Connect to Backend API
@@ -44,13 +81,15 @@ export default function Register() {
       const data = await response.json();
 
       if (!response.ok) {
-        // Throws error message sent from your backend controller
         throw new Error(data.message || 'Registration failed');
       }
 
-      // Save JWT token in localStorage if returned by your backend
+      // Save Token & User details both in localStorage
       if (data.token) {
         localStorage.setItem('token', data.token);
+      }
+      if (data.user) {
+        localStorage.setItem('user', JSON.stringify(data.user));
       }
 
       console.log("Response payload:", data);
@@ -91,7 +130,7 @@ export default function Register() {
     hidden: { opacity: 0, y: 30 },
     visible: { 
       opacity: 1, 
-      y: 0,
+      y: 0, 
       transition: { type: "spring", stiffness: 90, damping: 14, staggerChildren: 0.08 }
     }
   };
@@ -115,11 +154,10 @@ export default function Register() {
         animate={{ opacity: 1, x: 0 }}
         className="absolute top-6 left-6 z-50 flex items-center gap-2 cursor-pointer"
       >
-       
         <span className="text-sm font-black tracking-widest text-white uppercase">Lingo<span className="text-cyan-400">AI</span></span>
       </motion.div>
 
-      {/* 🛸 Main Layout Area - max-w reduced and gap shortened to remove space */}
+      {/* 🛸 Main Layout Area */}
       <main className="flex-grow max-w-5xl mx-auto w-full flex items-center justify-center py-12 px-2 relative z-10">
         <motion.div 
           variants={containerVariants}
@@ -127,79 +165,68 @@ export default function Register() {
           animate="visible"
           className="grid grid-cols-1 lg:grid-cols-12 gap-4 w-full items-center justify-items-center"
         >
-          {/* Left Side: Animated Cute Robot Graphic with 1-Line Label (Brought structurally closer) */}
-      <div className="lg:col-span-5 hidden lg:flex flex-col items-center justify-center p-2 space-y-4 justify-self-center lg:justify-self-end">
-  <motion.div 
-    animate={{ 
-      y: [0, -15, 0],
-      rotate: [0, 1, -1, 0]
-    }}
-    transition={{ 
-      duration: 4, 
-      repeat: Infinity, 
-      ease: "easeInOut" 
-    }}
-    className="relative flex flex-col items-center justify-center"
-  >
-    {/* Outer Glowing Pulsing Aura - Color updated to match brand gradient, size increased */}
-    <div className="absolute w-80 h-80 bg-gradient-to-tr from-emerald-500/20 to-cyan-500/20 rounded-full blur-3xl animate-pulse pointer-events-none" />
-
-    {/* Robot Frame - Size significantly increased */}
-    <div className="relative z-10 w-80 h-90 bg-slate-900/60 border-2 border-emerald-500/30 rounded-3xl flex items-center justify-center backdrop-blur-md shadow-[0_0_60px_rgba(16,185,129,0.2)] ring-4 ring-cyan-500/10">
-      <div className="flex flex-col items-center justify-center space-y-4">
-        
-        {/* Floating Antenna Signal - Color updated, size increased */}
-        <motion.div 
-          animate={{ scale: [1, 1.2, 1] }} 
-          transition={{ repeat: Infinity, duration: 1.5 }}
-          className="w-3.5 h-3.5 bg-cyan-400 rounded-full shadow-[0_0_15px_#22d3ee]" 
-        />
-
-        {/* Robot Head Shell - Size increased, colors updated to brand gradient */}
-        <div className="w-28 h-24 bg-gradient-to-b from-slate-800 to-slate-950 border-2 border-slate-700 rounded-3xl p-2.5 flex flex-col justify-between shadow-2xl relative">
-          
-          {/* Animated Eye Nodes - Color updated */}
-          <div className="flex justify-around items-center pt-1.5">
+          {/* Left Side: Animated Cute Robot Graphic */}
+          <div className="lg:col-span-5 hidden lg:flex flex-col items-center justify-center p-2 space-y-4 justify-self-center lg:justify-self-end">
             <motion.div 
-              animate={{ scaleY: [1, 0.1, 1] }} 
-              transition={{ repeat: Infinity, repeatDelay: 3, duration: 0.2 }}
-              className="w-5 h-5 bg-emerald-400 rounded-full shadow-[0_0_12px_#34d399]" 
-            />
-            <motion.div 
-              animate={{ scaleY: [1, 0.1, 1] }} 
-              transition={{ repeat: Infinity, repeatDelay: 3, duration: 0.2 }}
-              className="w-5 h-5 bg-emerald-400 rounded-full shadow-[0_0_12px_#34d399]" 
-            />
+              animate={{ 
+                y: [0, -15, 0],
+                rotate: [0, 1, -1, 0]
+              }}
+              transition={{ 
+                duration: 4, 
+                repeat: Infinity, 
+                ease: "easeInOut" 
+              }}
+              className="relative flex flex-col items-center justify-center"
+            >
+              <div className="absolute w-80 h-80 bg-gradient-to-tr from-emerald-500/20 to-cyan-500/20 rounded-full blur-3xl animate-pulse pointer-events-none" />
+
+              <div className="relative z-10 w-80 h-90 bg-slate-900/60 border-2 border-emerald-500/30 rounded-3xl flex items-center justify-center backdrop-blur-md shadow-[0_0_60px_rgba(16,185,129,0.2)] ring-4 ring-cyan-500/10">
+                <div className="flex flex-col items-center justify-center space-y-4">
+                  <motion.div 
+                    animate={{ scale: [1, 1.2, 1] }} 
+                    transition={{ repeat: Infinity, duration: 1.5 }}
+                    className="w-3.5 h-3.5 bg-cyan-400 rounded-full shadow-[0_0_15px_#22d3ee]" 
+                  />
+
+                  <div className="w-28 h-24 bg-gradient-to-b from-slate-800 to-slate-950 border-2 border-slate-700 rounded-3xl p-2.5 flex flex-col justify-between shadow-2xl relative">
+                    <div className="flex justify-around items-center pt-1.5">
+                      <motion.div 
+                        animate={{ scaleY: [1, 0.1, 1] }} 
+                        transition={{ repeat: Infinity, repeatDelay: 3, duration: 0.2 }}
+                        className="w-5 h-5 bg-emerald-400 rounded-full shadow-[0_0_12px_#34d399]" 
+                      />
+                      <motion.div 
+                        animate={{ scaleY: [1, 0.1, 1] }} 
+                        transition={{ repeat: Infinity, repeatDelay: 3, duration: 0.2 }}
+                        className="w-5 h-5 bg-emerald-400 rounded-full shadow-[0_0_12px_#34d399]" 
+                      />
+                    </div>
+
+                    <div className="w-10 h-2 bg-cyan-400/80 rounded-full mx-auto mb-1.5 shadow-[0_0_10px_#22d3ee]" />
+                  </div>
+
+                  <div className="w-20 h-16 bg-slate-900 border border-slate-800 rounded-xl flex items-center justify-center shadow-inner">
+                    <Cpu className="w-6 h-6 text-emerald-400 animate-pulse" />
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+            
+            <p className="text-sm font-semibold tracking-wide text-cyan-400/80 text-center select-none animate-pulse">
+              Your AI language coach is ready to assist you.
+            </p>
           </div>
 
-          {/* Cute Smiling Mouth - Color updated */}
-          <div className="w-10 h-2 bg-cyan-400/80 rounded-full mx-auto mb-1.5 shadow-[0_0_10px_#22d3ee]" />
-        </div>
-
-        {/* Body Core - Size increased, icon color updated */}
-        <div className="w-20 h-16 bg-slate-900 border border-slate-800 rounded-xl flex items-center justify-center shadow-inner">
-          <Cpu className="w-6 h-6 text-emerald-400 animate-pulse" />
-        </div>
-      </div>
-    </div>
-  </motion.div>
-  
-  {/* Added Clean One-Line Robot Support Subtitle - Color updated */}
-  <p className="text-sm font-semibold tracking-wide text-cyan-400/80 text-center select-none animate-pulse">
-    Your AI language coach is ready to assist you.
-  </p>
-</div>
-
-          {/* Spacer Column to smoothly manage interface composition */}
+          {/* Spacer Column */}
           <div className="lg:col-span-1 hidden lg:block"></div>
 
-          {/* Right Side: Exact Form Core Wrapper */}
+          {/* Right Side: Form Core Wrapper */}
           <div className="lg:col-span-6 flex justify-center lg:justify-start w-full">
             <motion.div
               variants={formVariants}
               className="w-full max-w-md bg-slate-900/40 border border-slate-800 backdrop-blur-xl rounded-[32px] p-6 sm:p-8 shadow-[0_30px_70px_-15px_rgba(0,0,0,0.8)] ring-4 ring-emerald-500/5"
             >
-              {/* Decorative Top Accent Light */}
               <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-emerald-400/40 to-cyan-500/40 rounded-full" />
 
               <div className="text-center space-y-2 mb-8">
@@ -265,18 +292,24 @@ export default function Register() {
                   </div>
                 </motion.div>
 
-                {/* Field: Phone */}
+                {/* Field: Phone (Max 10 Digits Validation) */}
                 <motion.div variants={itemVariants} className="space-y-1.5">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Mobile Uplink </label>
+                  <div className="flex justify-between items-center px-1">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Mobile Uplink</label>
+                    <span className={`text-[10px] font-mono ${formData.phone.length === 10 ? 'text-emerald-400 font-bold' : 'text-slate-500'}`}>
+                      {formData.phone.length}/10
+                    </span>
+                  </div>
                   <div className="relative group">
                     <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 group-focus-within:text-amber-400 transition-colors" />
                     <input 
                       type="tel"
                       name="phone"
                       required
+                      maxLength={10}
                       value={formData.phone}
                       onChange={handleChange}
-                      placeholder="+91 XXXXX XXXXX"
+                      placeholder="10-digit mobile number"
                       className="w-full pl-11 pr-4 h-12 bg-slate-950/60 border border-slate-800 rounded-xl text-xs font-medium text-slate-200 placeholder-slate-600 focus:outline-none focus:border-amber-500/50 focus:ring-4 focus:ring-amber-500/10 transition-all"
                     />
                   </div>
@@ -299,11 +332,37 @@ export default function Register() {
                     <button 
                       type="button" 
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
+                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors cursor-pointer"
                     >
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
                   </div>
+
+                  {/* 🎯 Real-Time Password Requirements Checklist */}
+                  {formData.password.length > 0 && (
+                    <motion.div 
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      className="grid grid-cols-2 gap-1.5 pt-2 px-1"
+                    >
+                      <div className={`flex items-center gap-1.5 text-[10px] font-medium transition-colors ${passwordCriteria.length ? 'text-emerald-400' : 'text-slate-500'}`}>
+                        <CheckCircle2 className={`w-3 h-3 ${passwordCriteria.length ? 'text-emerald-400' : 'text-slate-600'}`} />
+                        <span>Min 6 characters</span>
+                      </div>
+                      <div className={`flex items-center gap-1.5 text-[10px] font-medium transition-colors ${passwordCriteria.capital ? 'text-emerald-400' : 'text-slate-500'}`}>
+                        <CheckCircle2 className={`w-3 h-3 ${passwordCriteria.capital ? 'text-emerald-400' : 'text-slate-600'}`} />
+                        <span>1 Capital letter</span>
+                      </div>
+                      <div className={`flex items-center gap-1.5 text-[10px] font-medium transition-colors ${passwordCriteria.number ? 'text-emerald-400' : 'text-slate-500'}`}>
+                        <CheckCircle2 className={`w-3 h-3 ${passwordCriteria.number ? 'text-emerald-400' : 'text-slate-600'}`} />
+                        <span>1 Number</span>
+                      </div>
+                      <div className={`flex items-center gap-1.5 text-[10px] font-medium transition-colors ${passwordCriteria.symbol ? 'text-emerald-400' : 'text-slate-500'}`}>
+                        <CheckCircle2 className={`w-3 h-3 ${passwordCriteria.symbol ? 'text-emerald-400' : 'text-slate-600'}`} />
+                        <span>1 Special symbol</span>
+                      </div>
+                    </motion.div>
+                  )}
                 </motion.div>
 
                 {/* Submit Action Button */}
@@ -330,7 +389,7 @@ export default function Register() {
               {/* Existing Route Redirect Link */}
               <motion.p variants={itemVariants} className="text-center text-[10px] text-slate-500 mt-6 font-bold tracking-wide">
                 Already synced to grid?{' '}
-                <span className="text-emerald-400 hover:text-cyan-400 cursor-pointer underline transition-colors" onClick={()=> navigate("/login")}>
+                <span className="text-emerald-400 hover:text-cyan-400 cursor-pointer underline transition-colors" onClick={() => navigate("/login")}>
                   Login 
                 </span>
               </motion.p>
@@ -338,9 +397,6 @@ export default function Register() {
           </div>
         </motion.div>
       </main>
-
-   
-
     </div>
   );
 }
